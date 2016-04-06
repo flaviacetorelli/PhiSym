@@ -59,18 +59,19 @@ private:
     virtual void endJob();
 
     //---input 
-    edm::ESHandle<EcalChannelStatus> chStatus_;
-    edm::Handle<EBRecHitCollection>  barrelRecHitsHandle_;
-    edm::Handle<EERecHitCollection>  endcapRecHitsHandle_;
-    edm::InputTag  ebTag_;
-    edm::InputTag  eeTag_;
+    edm::ESHandle<EcalChannelStatus>     chStatus_;
+    edm::Handle<EBRecHitCollection>      barrelRecHitsHandle_;
+    edm::Handle<EERecHitCollection>      endcapRecHitsHandle_;
+    edm::Handle<reco::BeamSpot>          recoBeamSpotHandle_;
+    edm::EDGetTokenT<EBRecHitCollection> ebToken_;
+    edm::EDGetTokenT<EBRecHitCollection> eeToken_;
+    edm::EDGetTokenT<reco::BeamSpot>     beamSpotToken_;
     float          etCutEB_;
     float          eThresholdEB_;
     float          etCutEE_;
-    float          A_;
-    float          B_;
-    float          C_;
-    int            ADCthrEE_;
+    vector<double> A_;
+    vector<double> B_;
+    float          thrEEmod_;
     int            nMisCalib_;
     vector<double> misCalibRangeEB_;
     float          misCalibStepsEB_[11];    
@@ -102,15 +103,15 @@ private:
 //----------IMPLEMENTATION----------------------------------------------------------------
 
 PhiSymProducer::PhiSymProducer(const edm::ParameterSet& pSet):
-    ebTag_(pSet.getParameter<edm::InputTag>("barrelHitCollection")),
-    eeTag_(pSet.getParameter<edm::InputTag>("endcapHitCollection")),
+    ebToken_(consumes<EBRecHitCollection>(pSet.getParameter<edm::InputTag>("barrelHitCollection"))),
+    eeToken_(consumes<EBRecHitCollection>(pSet.getParameter<edm::InputTag>("endcapHitCollection"))),
+    beamSpotToken_(consumes<reco::BeamSpot>(pSet.getParameter<edm::InputTag>("beamspot"))),
     etCutEB_(pSet.getParameter<double>("etCut_barrel")),
     eThresholdEB_(pSet.getParameter<double>("eThreshold_barrel")),
     etCutEE_(pSet.getParameter<double>("etCut_endcap")),
-    A_(pSet.getParameter<double>("A")),
-    B_(pSet.getParameter<double>("B")),
-    C_(pSet.getParameter<double>("C")),
-    ADCthrEE_(pSet.getParameter<int>("ADCthrEE")),
+    A_(pSet.getParameter<vector<double> >("A")),
+    B_(pSet.getParameter<vector<double> >("B")),
+    thrEEmod_(pSet.getParameter<double>("thrEEmod")),
     nMisCalib_(pSet.getParameter<int>("nMisCalib")/2),
     misCalibRangeEB_(pSet.getParameter<vector<double> >("misCalibRangeEB")),
     misCalibRangeEE_(pSet.getParameter<vector<double> >("misCalibRangeEE")),
@@ -138,7 +139,10 @@ void PhiSymProducer::beginJob()
         etCutsEB_[iRing] = -1;
     for(int iRing=0; iRing<ringsInOneEE; ++iRing)
     {
-        eThresholdsEE_[iRing] = ADCthrEE_*(C_ + B_*iRing + A_*iRing*iRing)/1000;
+        if(iRing < 30)
+            eThresholdsEE_[iRing] = thrEEmod_*(B_[0] + A_[0]*iRing)/1000;
+        else
+            eThresholdsEE_[iRing] = thrEEmod_*(B_[1] + A_[1]*iRing)/1000;
         eThresholdsEE_[iRing+ringsInOneEE] = eThresholdsEE_[iRing];
         etCutsEE_[iRing] = -1;
         etCutsEE_[iRing+ringsInOneEE] = -1;
@@ -254,8 +258,8 @@ void PhiSymProducer::produce(edm::Event& event, const edm::EventSetup& setup)
     uint64_t totHitsEE=0;
 
     //---get recHits collections 
-    event.getByLabel(ebTag_, barrelRecHitsHandle_);  
-    event.getByLabel(eeTag_, endcapRecHitsHandle_);
+    event.getByToken(ebToken_, barrelRecHitsHandle_);  
+    event.getByToken(eeToken_, endcapRecHitsHandle_);
 
     //---get the ecal geometry
     edm::ESHandle<CaloGeometry> geoHandle;
@@ -267,8 +271,7 @@ void PhiSymProducer::produce(edm::Event& event, const edm::EventSetup& setup)
     setup.get<EcalChannelStatusRcd>().get(chStatus_);
     
     //---get the beamspot
-    edm::Handle<reco::BeamSpot> recoBeamSpotHandle;
-    event.getByLabel("offlineBeamSpot", recoBeamSpotHandle);
+    event.getByToken(beamSpotToken_, recoBeamSpotHandle_);
     
     //---get the laser corrections
     edm::Timestamp evtTimeStamp(event.time().value());
@@ -394,7 +397,7 @@ void PhiSymProducer::produce(edm::Event& event, const edm::EventSetup& setup)
     }
 
     //---update the beamspot    
-    lumiInfo_->back().Update(recoBeamSpotHandle.product(), totHitsEB, totHitsEE);
+    lumiInfo_->back().Update(recoBeamSpotHandle_.product(), totHitsEB, totHitsEE);
 }
 
 DEFINE_FWK_MODULE(PhiSymProducer);

@@ -1,5 +1,17 @@
 #include "PhiSym/EcalCalibDataFormats/interface/PhiSymInfo.h"
 
+//**********PhiSymRunLumi*****************************************************************
+bool operator==(const PhiSymRunLumi& lx, const PhiSymRunLumi& rx)
+{
+    return lx.run == rx.run && lx.lumi == rx.lumi;
+}
+
+bool operator<(const PhiSymRunLumi& lx, const PhiSymRunLumi& rx)
+{
+    return lx.run < rx.run || (lx.run == rx.run && lx.lumi < rx.lumi);
+}
+
+//**********PhiSymInfo********************************************************************
 //**********constructors******************************************************************
 PhiSymInfo::PhiSymInfo():
     totHitsEB_(0), totHitsEE_(0), nEvents_(0),

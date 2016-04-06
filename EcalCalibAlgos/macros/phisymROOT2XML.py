@@ -35,18 +35,18 @@ ebTree = ROOT.CrystalsEBTree(bareTree)
 bareTree = inFile.Get("ee_xstals")
 eeTree = ROOT.CrystalsEETree(bareTree)
 
-ebIC=[-999 for i in range(61200)]
-eeIC=[-999 for i in range(14648)]
-ebK=[-999 for i in range(61200)]
-eeK=[-999 for i in range(14648)]
-ebN=[0 for i in range(61200)]
-eeN=[0 for i in range(14648)]
-ebICerr=[999 for i in range(61200)]
-eeICerr=[999 for i in range(14648)]
-ebICsys=[999 for i in range(61200)]
-eeICsys=[999 for i in range(14648)]
-ebCorr=[1 for i in range(61200)]
-eeCorr=[1 for i in range(14648)]
+ebIC=[-999 for i in range(ROOT.EBDetId.kSizeForDenseIndexing)]
+eeIC=[-999 for i in range(ROOT.EEDetId.kSizeForDenseIndexing)]
+ebK=[-999 for i in range(ROOT.EBDetId.kSizeForDenseIndexing)]
+eeK=[-999 for i in range(ROOT.EEDetId.kSizeForDenseIndexing)]
+ebN=[0 for i in range(ROOT.EBDetId.kSizeForDenseIndexing)]
+eeN=[0 for i in range(ROOT.EEDetId.kSizeForDenseIndexing)]
+ebICerr=[999 for i in range(ROOT.EBDetId.kSizeForDenseIndexing)]
+eeICerr=[999 for i in range(ROOT.EEDetId.kSizeForDenseIndexing)]
+ebICsys=[999 for i in range(ROOT.EBDetId.kSizeForDenseIndexing)]
+eeICsys=[999 for i in range(ROOT.EEDetId.kSizeForDenseIndexing)]
+ebCorr=[1 for i in range(ROOT.EBDetId.kSizeForDenseIndexing)]
+eeCorr=[1 for i in range(ROOT.EEDetId.kSizeForDenseIndexing)]
 
 #EB
 while ebTree.NextEntry():
@@ -107,7 +107,7 @@ with open(opts.correctionsFile) as corrections:
         tokens = channel.split()
         if int(tokens[2]) == 0:
             ebCorr[ROOT.EBDetId(int(tokens[0]), int(tokens[1])).hashedIndex()] = float(tokens[3])
-        else:
+        elif ROOT.EEDetId.validDetId(int(tokens[0]), int(tokens[1]), int(tokens[2])):
             eeCorr[ROOT.EEDetId(int(tokens[0]), int(tokens[1]), int(tokens[2])).hashedIndex()] = float(tokens[3])
 
 # write the XML file
@@ -151,7 +151,7 @@ for index in range(14648):
         err = sqrt(eeICerr[index]*eeICerr[index] + eeICsys[index]*eeICsys[index])
 
     cell = ET.SubElement(container, "cell", ix=str(ix), iy=str(iy), zside=str(zside))
-    ET.SubElement(cell, "Value").text = str(eeIC[index])
+    ET.SubElement(cell, "Value").text = str(eeIC[index]*eeCorr[index])
     
 # write the xml tree to tho out file
 out = open(opts.outputFile, "w")

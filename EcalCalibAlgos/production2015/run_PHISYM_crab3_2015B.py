@@ -6,7 +6,7 @@ recoType = "multifit"
 config = Configuration()
 
 config.section_('General')
-config.General.requestName       = 'PHISYM-CMSSW_7415-'+recoType+'-74X_dataRun2_Prompt_v4-Run2015D_v2'
+config.General.requestName       = 'PHISYM-CMSSW_7415-'+recoType+'-74X_dataRun2_Prompt_v4-Run2015B_v2'
 config.General.transferLogs      = True
 config.General.transferOutputs   = True
 
@@ -20,7 +20,7 @@ config.JobType.priority          = 30
 
 config.section_('Data')
 # This string determines the primary dataset of the newly-produced outputs.
-config.Data.inputDataset         = '/AlCaPhiSym/Run2015D-v1/RAW'
+config.Data.inputDataset         = '/AlCaPhiSym/Run2015B-v1/RAW'
 config.Data.inputDBS             = 'global'
 config.Data.splitting            = 'LumiBased'
 config.Data.lumiMask             = 'Run2015ABCD_DCSONLY.json'

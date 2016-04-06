@@ -1,9 +1,12 @@
 from WMCore.Configuration import Configuration
 
+#recoType = "weights"
+recoType = "multifit"
+
 config = Configuration()
 
 config.section_('General')
-config.General.requestName     = 'PHISYM-CMSSW_746-weights-74X_dataRun2_Prompt_v0-Run2015C-step2_v2'
+config.General.requestName     = 'PHISYM-CMSSW_7415-'+recoType+'-74X_dataRun2_Prompt_v4-Run2015C_v1-merged_v2'
 config.General.transferLogs    = True
 config.General.transferOutputs = True
 
@@ -11,17 +14,21 @@ config.section_('JobType')
 config.JobType.pluginName      = 'Analysis'
 
 # Name of the CMSSW configuration file
-config.JobType.psetName        = 'PhiSymCalibration_cfg.py'
+config.JobType.psetName        = 'PhiSymMerger_cfg.py'
+config.JobType.inputFiles      = ['IOVmap.root']
 config.JobType.priority        = 20
 
 config.section_('Data')
 # This string determines the primary dataset of the newly-produced outputs.
-config.Data.inputDataset       = '/AlCaPhiSym/spigazzi-crab_PHISYM-CMSSW_746-weights-74X_dataRun2_Prompt_v0-Run2015C_v2-65b866a8390209d35595d95afbd67882/USER'
+if recoType == "weights":
+    config.Data.inputDataset   = '/AlCaPhiSym/spigazzi-crab_PHISYM-CMSSW_7415-weights-74X_dataRun2_Prompt_v4-Run2015C_v1-ad7dc4f8513717010b7a46f581acebfc/USER'
+else:
+    config.Data.inputDataset   = '/AlCaPhiSym/spigazzi-crab_PHISYM-CMSSW_7415-multifit-74X_dataRun2_Prompt_v4-Run2015C_v2-ca39ed7216e45a0f07881f94873e4197/USER'
 
 #config.Data.useParent = True
 config.Data.inputDBS           = 'phys03'
 config.Data.splitting          = 'LumiBased'
-#config.Data.lumiMask           = '/afs/cern.ch/cms/CAF/CMSALCA/ALCA_ECALCALIB/json_ecalonly/ECALJSON/files/Cert_All_13TeV_PromptReco_Collisions15_ECALonly_JSON.txt'
+config.Data.lumiMask           = 'Run2015_silver.json'
 config.Data.unitsPerJob        = 100
 config.Data.totalUnits         = -1
 config.Data.publication        = False

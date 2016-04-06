@@ -29,7 +29,7 @@ process.MessageLogger.cerr.default = cms.untracked.PSet(
 
 # import of standard configurations
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(300000)
+    input = cms.untracked.int32(50000)
 )
 
 # skip bad events
@@ -50,7 +50,7 @@ process.source = cms.Source("PoolSource",
 
                                 # "root://cmsxrootd-site.fnal.gov//store/data/Run2015B/AlCaPhiSym/RAW/v1/000/251/561/00000/141BB8BB-8928-E511-A6C6-02163E011B19.root",
                                 # "root://cmsxrootd-site.fnal.gov//store/data/Run2015B/AlCaPhiSym/RAW/v1/000/251/561/00000/143169BD-8928-E511-9223-02163E0126E1.root",
-                                "root://cmsxrootd-site.fnal.gov//store/data/Run2015B/AlCaPhiSym/RAW/v1/000/251/561/00000/1A616841-7128-E511-837E-02163E0138B3.root",
+                                # "root://cmsxrootd-site.fnal.gov//store/data/Run2015B/AlCaPhiSym/RAW/v1/000/251/561/00000/1A616841-7128-E511-837E-02163E0138B3.root",
                                 # "root://cmsxrootd-site.fnal.gov//store/data/Run2015B/AlCaPhiSym/RAW/v1/000/251/561/00000/226B28BB-8928-E511-A130-02163E0133D1.root",
                                 # "root://cmsxrootd-site.fnal.gov//store/data/Run2015B/AlCaPhiSym/RAW/v1/000/251/561/00000/26DE7ABA-8928-E511-9718-02163E01412F.root",
                                 # "root://cmsxrootd-site.fnal.gov//store/data/Run2015B/AlCaPhiSym/RAW/v1/000/251/561/00000/28520B3B-7128-E511-B938-02163E013674.root",
@@ -77,6 +77,8 @@ process.source = cms.Source("PoolSource",
                                 # "root://cmsxrootd-site.fnal.gov//store/data/Run2015B/AlCaPhiSym/RAW/v1/000/251/561/00000/CC009E3C-7128-E511-911C-02163E011D23.root",
                                 # "root://cmsxrootd-site.fnal.gov//store/data/Run2015B/AlCaPhiSym/RAW/v1/000/251/561/00000/FC9B1038-6528-E511-BB04-02163E0139A2.root",
                                 #"root://cmsxrootd-site.fnal.gov//store/data/Run2015B/AlCaPhiSym/RAW/v1/000/251/561/00000/FE3699BB-8928-E511-B0B2-02163E011B42.root"
+                                #2015D
+                                "root://eoscms//eos/cms/store/data/Run2015D/AlCaPhiSym/RAW/v1/000/258/159/00000/0434665B-C969-E511-86CD-02163E014200.root"
                             )
 )
 
@@ -88,8 +90,8 @@ process.configurationMetadata = cms.untracked.PSet(
 )
 
 isStream=True
-runMultiFit=False
-isBX50ns=True
+runMultiFit=True
+isBX50ns=False
 
 if (runMultiFit):
     if (isBX50ns):
@@ -148,11 +150,22 @@ process.TFileService = cms.Service("TFileService",
 # GLOBAL-TAG
 #process.GlobalTag = GlobalTag(process.GlobalTag, 'GR_P_V56')
 process.GlobalTag = GlobalTag(process.GlobalTag, '74X_dataRun2_Prompt_v0')
-process.GlobalTag.toGet = cms.VPSet(
-    cms.PSet(record = cms.string("EcalIntercalibConstantsRcd"),
-             tag = cms.string("EcalIntercalibConstants_2012ABCD_offline"),
-             connect = cms.untracked.string("frontier://PromptProd/CMS_COND_31X_ECAL")
-         )
+# process.GlobalTag.toGet = cms.VPSet(
+#     cms.PSet(record = cms.string("EcalIntercalibConstantsRcd"),
+#              tag = cms.string("EcalIntercalibConstants_2012ABCD_offline"),
+#              connect = cms.string("frontier://PromptProd/CMS_COND_31X_ECAL")
+#          )
+# )
+
+# L1 filter for Lone bunch studies
+process.triggerSelectionLoneBunch = cms.EDFilter( "TriggerResultsFilter",
+                                                  triggerConditions = cms.vstring('L1_AlwaysTrue'),
+                                                  hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
+                                                  l1tResults = cms.InputTag( "hltGtDigis" ),
+                                                  l1tIgnoreMask = cms.bool( False ),
+                                                  l1techIgnorePrescales = cms.bool( False ),
+                                                  daqPartitions = cms.uint32( 1 ),
+                                                  throw = cms.bool( True )
 )
 
 # SCHEDULE
@@ -161,16 +174,22 @@ if (not runMultiFit):
 else:
     process.reconstruction_step = cms.Sequence( process.ecalMultiFitUncalibRecHit + process.ecalRecHit )
 
+process.phisymSequence = cms.Sequence()
+    
 if (isStream):
-    process.p = cms.Path(process.reconstruction_step)
-    process.p *= process.offlineBeamSpot
-    process.p *= process.PhiSymProducer
+    process.phisymSequence += process.reconstruction_step
+    process.phisymSequence += process.offlineBeamSpot
+    process.phisymSequence += process.PhiSymProducer
 else:
-    process.p = cms.Path(process.RawToDigi) 
-    process.p *= process.L1Reco
-    process.p *= process.reconstruction_step
-    process.p *= process.offlineBeamSpot
-    process.p *= process.PhiSymProducer
+    process.phisymSequence = cms.Path(process.RawToDigi) 
+    process.phisymSequence *= process.L1Reco
+    process.phisymSequence *= process.reconstruction_step
+    process.phisymSequence *= process.offlineBeamSpot
+    process.phisymSequence *= process.PhiSymProducer
+
+process.path = cms.Path(process.triggerSelectionLoneBunch*process.phisymSequence)
+process.RECOSIMoutput.SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring('path'))
 
 process.RECOSIMoutput_step = cms.EndPath(process.RECOSIMoutput)
-process.schedule = cms.Schedule(process.p, process.RECOSIMoutput_step)
+process.schedule = cms.Schedule(process.path, process.RECOSIMoutput_step)
+

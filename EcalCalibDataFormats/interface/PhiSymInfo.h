@@ -8,9 +8,30 @@
 #include "DataFormats/Provenance/interface/LuminosityBlockID.h"
 #include "FWCore/Framework/interface/LuminosityBlock.h"
 
+//****************************************************************************************
+class PhiSymRunLumi
+{
+public:
+    //---ctors---
+    PhiSymRunLumi(){run=-1; lumi=-1;};
+    PhiSymRunLumi(int r, int l){run=r; lumi=l;};
+    
+    //---dtor---
+    ~PhiSymRunLumi(){};
+
+    //---operators---
+    friend bool operator==(const PhiSymRunLumi& lx, const PhiSymRunLumi& rx);
+    friend bool operator!=(const PhiSymRunLumi& lx, const PhiSymRunLumi& rx){return !(lx==rx);};
+    friend bool operator<(const PhiSymRunLumi& lx, const PhiSymRunLumi& rx);
+    friend bool operator>(const PhiSymRunLumi& lx, const PhiSymRunLumi& rx){return rx<lx;};
+    friend bool operator>=(const PhiSymRunLumi& lx, const PhiSymRunLumi& rx){return lx>rx || lx==rx;};
+    friend bool operator<=(const PhiSymRunLumi& lx, const PhiSymRunLumi& rx){return lx<rx || lx==rx;};
+    
+    int run;
+    int lumi;
+};
 
 //****************************************************************************************
-
 class PhiSymInfo
 {
 public:

@@ -193,7 +193,7 @@
     Double_t* ebp_corr=gr_sm_sub_EBp->GetY();
     Double_t* ebp_corr_err=gr_sm_sub_EBp->GetEY();
 
-TH1F* corr_syst=new TH1F("corr_syst", "Correction syst", 200, -0.1, 0.1);
+    TH1F* corr_syst=new TH1F("corr_syst", "Correction syst", 200, -0.1, 0.1);
     TH1F* corr_syst_err=new TH1F("corr_syst_err", "Correction syst error", 200, 0, 0.02);
     TH1F* corr_syst_pull=new TH1F("corr_syst_pull", "Correction pull", 40, -10, 10);
   

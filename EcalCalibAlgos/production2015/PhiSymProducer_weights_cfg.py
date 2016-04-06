@@ -14,7 +14,9 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condD
 process.load('Configuration.Geometry.GeometryExtended2015Reco_cff')
 process.load('Configuration.StandardSequences.L1Reco_cff')
 process.load('Configuration.StandardSequences.RawToDigi_Data_cff')
-process.load('RecoLocalCalo.EcalRecProducers.ecalRecalibRecHit_cfi')
+process.load('RecoLocalCalo.EcalRecProducers.ecalMultiFitUncalibRecHit_cfi')
+process.load('RecoLocalCalo.EcalRecProducers.ecalUncalibRecHit_cfi')
+process.load('RecoLocalCalo.EcalRecProducers.ecalRecHit_cfi')
 process.load("RecoVertex.BeamSpotProducer.BeamSpot_cff")
 
 process.load('FWCore/MessageService/MessageLogger_cfi')
@@ -27,7 +29,7 @@ process.MessageLogger.cerr.default = cms.untracked.PSet(
 
 # import of standard configurations
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(300000)
+    input = cms.untracked.int32(options.maxEvents)
 )
 
 # skip bad events
@@ -43,14 +45,9 @@ process.source = cms.Source("PoolSource",
                                 'drop *_hltTriggerSummaryAOD_*_*'
                             ),
                             fileNames = cms.untracked.vstring(
-                                #"/store/data/Run2012D/AlCaPhiSym/RAW/v1/000/208/538/185B7750-433E-E211-8FA0-E0CB4E55365D.root"
-                                #"/store/data/Run2012D/AlCaPhiSym/RAW/v1/000/208/538/185B7750-433E-E211-8FA0-E0CB4E55365D.root",
-                                "/store/data/Run2012D/AlCaPhiSym/RAW/v1/000/208/538/7ABC81F3-543E-E211-A801-003048678098.root",
-                                #"/store/data/Run2012D/AlCaPhiSym/RAW/v1/000/208/538/8C50E001-423E-E211-BEDA-BCAEC5329716.root",
-                                #"/store/data/Run2012D/AlCaPhiSym/RAW/v1/000/208/538/B0BE6B16-423E-E211-B0CD-002481E0D90C.root",
-                                #"/store/data/Run2012D/AlCaPhiSym/RAW/v1/000/208/538/C628AB90-3F3E-E211-BC83-5404A63886A2.root"
-                            )
-)
+                                "/store/data/Run2015A/AlCaPhiSym/RAW/v1/000/247/720/00000/4C0AF78B-4810-E511-8C09-02163E0143CB.root"
+                                #"root://cmsxrootd-site.fnal.gov//store/data/Run2015B/AlCaPhiSym/RAW/v1/000/251/562/00000/0014158C-7728-E511-8847-02163E0122C2.root",
+))
 
 # Production Info
 process.configurationMetadata = cms.untracked.PSet(
@@ -59,23 +56,25 @@ process.configurationMetadata = cms.untracked.PSet(
     name = cms.untracked.string('PhiSymProducer')
 )
 
+#ecalUncalibRecHit
+process.ecalUncalibRecHit.EBdigiCollection = cms.InputTag("hltEcalPhiSymFilter","phiSymEcalDigisEB")
+process.ecalUncalibRecHit.EEdigiCollection = cms.InputTag("hltEcalPhiSymFilter","phiSymEcalDigisEE")
+
 #ecalRecHit (no ricovery)
-process.ecalRecHit.doEnergyScale = cms.bool(True)
-process.ecalRecHit.doIntercalib = cms.bool(True)
-process.ecalRecHit.doLaserCorrections = cms.bool(True)
-process.ecalRecHit.EBRecalibRecHitCollection = cms.string('recalibEcalRecHitsEB')
-process.ecalRecHit.EERecalibRecHitCollection = cms.string('recalibEcalRecHitsEE')
-process.ecalRecHit.EBRecHitCollection = cms.InputTag('hltAlCaPhiSymUncalibrator', 'phiSymEcalRecHitsEB', 'HLT')
-process.ecalRecHit.EERecHitCollection = cms.InputTag('hltAlCaPhiSymUncalibrator', 'phiSymEcalRecHitsEE', 'HLT')
+process.ecalRecHit.killDeadChannels = cms.bool( False )
+process.ecalRecHit.recoverEBVFE = cms.bool( False )
+process.ecalRecHit.recoverEEVFE = cms.bool( False )
+process.ecalRecHit.recoverEBFE = cms.bool( False )
+process.ecalRecHit.recoverEEFE = cms.bool( False )
+process.ecalRecHit.recoverEEIsolatedChannels = cms.bool( False )
+process.ecalRecHit.recoverEBIsolatedChannels = cms.bool( False )
+process.ecalRecHit.EBuncalibRecHitCollection = cms.InputTag("ecalUncalibRecHit","EcalUncalibRecHitsEB")
+process.ecalRecHit.EEuncalibRecHitCollection = cms.InputTag("ecalUncalibRecHit","EcalUncalibRecHitsEE")
 
 # PHISYM producer
 process.load('PhiSym.EcalCalibAlgos.PhiSymProducer_cfi')
-# process.PhiSymProducer.applyEtThreshold=cms.bool(False)
-process.PhiSymProducer.makeSpectraTreeEB = True
-process.PhiSymProducer.makeSpectraTreeEE = True
-process.PhiSymProducer.barrelHitCollection = cms.InputTag('ecalRecHit', 'recalibEcalRecHitsEB', 'PHISYM')
-process.PhiSymProducer.endcapHitCollection = cms.InputTag('ecalRecHit', 'recalibEcalRecHitsEE', 'PHISYM')
-
+#process.PhiSymProducer.makeSpectraTreeEB = True
+#process.PhiSymProducer.makeSpectraTreeEE = True
 
 # Output definition
 PHISYM_output_commands = cms.untracked.vstring(
@@ -92,26 +91,32 @@ process.TFileService = cms.Service("TFileService",
                                    fileName = cms.string("phisym_spectra.root"))
 
 # GLOBAL-TAG
-process.GlobalTag = GlobalTag(process.GlobalTag, 'GR_P_V56')
+process.GlobalTag = GlobalTag(process.GlobalTag, '74X_dataRun2_Prompt_v2')
 process.GlobalTag.toGet = cms.VPSet(
-    cms.PSet(record = cms.string("EcalLaserAPDPNRatiosRcd"),
-             tag = cms.string("EcalLaserAPDPNRatios_20130130_447_p1_v2"),
-             connect = cms.untracked.string("frontier://FrontierProd/CMS_COND_42X_ECAL_LAS")
-         ),
     cms.PSet(record = cms.string("EcalIntercalibConstantsRcd"),
-             # tag = cms.string("EcalIntercalibConstants_V20120620_piZPhiSEtaScale2012_IOV2_AlphaStudies"),
-             # connect = cms.untracked.string("frontier://FrontierInt/CMS_COND_ECAL")
              tag = cms.string("EcalIntercalibConstants_2012ABCD_offline"),
-             connect = cms.untracked.string("frontier://PromptProd/CMS_COND_31X_ECAL")
+             connect = cms.untracked.string("frontier://FrontierProd/CMS_COND_31X_ECAL"),
          ),
-    cms.PSet(record = cms.string("EcalChannelStatusRcd"),
-             tag = cms.string("EcalChannelStatus_v1_prompt"),
-             connect = cms.untracked.string("frontier://FrontierProd/CMS_COND_31X_ECAL")
+    cms.PSet(record = cms.string("EcalPulseShapesRcd"),
+             tag = cms.string("EcalPulseShapes_v01_offline"),
+             connect = cms.untracked.string("frontier://FrontierProd/CMS_CONDITIONS"),
+         ),
+    cms.PSet(record = cms.string("EBAlignmentRcd"),
+             tag = cms.string("EBAlignment_measured_v10_offline"),
+             connect = cms.untracked.string("frontier://FrontierProd/CMS_CONDITIONS"),
+         ),
+    cms.PSet(record = cms.string("EEAlignmentRcd"),
+             tag = cms.string("EEAlignment_measured_v10_offline"),
+             connect = cms.untracked.string("frontier://FrontierProd/CMS_CONDITIONS"),
+         ),
+    cms.PSet(record = cms.string("ESAlignmentRcd"), # only Bon!
+             tag = cms.string("ESAlignment_measured_v08_offline"),
+             connect = cms.untracked.string("frontier://FrontierProd/CMS_CONDITIONS"),
          )
-)
+    )
 
 # SCHEDULE
-process.reconstruction_step = cms.Sequence(process.ecalRecHit)
+process.reconstruction_step = cms.Sequence( process.ecalUncalibRecHit + process.ecalRecHit )
 
 process.p = cms.Path(process.reconstruction_step)
 process.p *= process.offlineBeamSpot

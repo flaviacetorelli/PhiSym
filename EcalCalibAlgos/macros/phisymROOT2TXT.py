@@ -53,7 +53,7 @@ with open(opts.correctionsFile) as corrections:
         tokens = channel.split()
         if int(tokens[2]) == 0:
             ebCorr[ROOT.EBDetId(int(tokens[0]), int(tokens[1])).hashedIndex()] = float(tokens[3])
-        else:
+        elif ROOT.EEDetId.validDetId(int(tokens[0]), int(tokens[1]), int(tokens[2])):
             eeCorr[ROOT.EEDetId(int(tokens[0]), int(tokens[1]), int(tokens[2])).hashedIndex()] = float(tokens[3])
 
 #EB
@@ -146,6 +146,6 @@ for index in range(14648):
         err = 999
     else:
         err = sqrt(eeICerr[index]*eeICerr[index] + eeICsys[index]*eeICsys[index])
-    print ix, iy, zside, "%.5f" % eeIC[index], "%.7f" % err, "%.7f" % eeICerr[index], "%.7f" % eeICsys[index],
+    print ix, iy, zside, "%.5f" % (eeIC[index]*eeCorr[index]), "%.7f" % err, "%.7f" % eeICerr[index], "%.7f" % eeICsys[index],
     print status, eeN[index], eeK[index]
 

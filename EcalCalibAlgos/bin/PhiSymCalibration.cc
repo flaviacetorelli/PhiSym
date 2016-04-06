@@ -1,5 +1,5 @@
-#ifndef __PHISYM_CALIBRATION_LITE__
-#define __PHISYM_CALIBRATION_LITE__
+#ifndef __PHISYM_CALIBRATION__
+#define __PHISYM_CALIBRATION__
 
 #include <map>
 #include <vector>
@@ -23,6 +23,7 @@
 
 #include "Calibration/Tools/interface/EcalRingCalibrationTools.h"
 
+#include "PhiSym/EcalCalibDataFormats/interface/PhiSymInfo.h"
 #include "PhiSym/EcalCalibDataFormats/interface/PhiSymRecHit.h"
 #include "PhiSym/EcalCalibDataFormats/interface/CalibrationFile.h"
 #include "PhiSym/EcalCalibAlgos/interface/utils.h"
@@ -31,6 +32,7 @@ using namespace std;
 
 //****************************************************************************************
 //-----gloabal variables definition------
+bool normalizeAbsIC=true;
 int nLumis_=0;
 int nEvents_=0;
 int nMisCalib_=-1;
@@ -72,6 +74,7 @@ double kFactorsChEB_[EBDetId::kSizeForDenseIndexing];
 double kFactorsChErrEB_[EBDetId::kSizeForDenseIndexing];
 double ebICChErr_[EBDetId::kSizeForDenseIndexing]={0};
 float  icChMeanEB_[kNRingsEB];
+float  icAbsChMeanEB_[kNRingsEB];
 //---EE
 map<int, int> eeRingsMap_;
 PhiSymRecHit eeXstals_[EEDetId::kSizeForDenseIndexing];
@@ -81,6 +84,7 @@ double kFactorsChEE_[EEDetId::kSizeForDenseIndexing]={0};
 double kFactorsChErrEE_[EEDetId::kSizeForDenseIndexing]={0};
 double eeICChErr_[EEDetId::kSizeForDenseIndexing]={0};
 float  icChMeanEE_[kNRingsEE];
+float  icAbsChMeanEE_[kNRingsEE];
 
 bool kFactorsComputed_;
 
@@ -251,8 +255,9 @@ void ComputeICs()
         if(currentRing == -1 || !goodXstalsEB_[currentRing][ebXstal.iphi()][0])
             continue;
         {
-            icChMeanEB_[currentRing] += (ebXstals_[index].GetSumEt(0)/
-                                         ebRingsSumEt_[currentRing][0]-1)/GetChannelKfactor(index, 0).first+1;
+            float currentICCh = (ebXstals_[index].GetSumEt(0)/
+                                 ebRingsSumEt_[currentRing][0]-1)/GetChannelKfactor(index, 0).first+1;
+            icChMeanEB_[currentRing] += currentICCh;
             icRMeanEB_[currentRing] += (ebXstals_[index].GetSumEt(0)/
                                         ebRingsSumEt_[currentRing][0]-1)/GetRingKfactor(currentRing, 0).first+1;
         }
@@ -283,8 +288,27 @@ void ComputeICs()
         icChMeanEE_[iRing] = icChMeanEE_[iRing]/nGoodInRingEE_[iRing][0];
         icRMeanEE_[iRing] = icRMeanEE_[iRing]/nGoodInRingEE_[iRing][0];            
     }    
-
+    
     //---loop over the EB channels and compute the IC
+    float icChEB[EBDetId::kSizeForDenseIndexing];        
+    for(uint32_t index=0; index<EBDetId::kSizeForDenseIndexing; ++index)
+    {
+        EBDetId ebXstal = EBDetId::detIdFromDenseIndex(index);
+        int currentRing = ebRingsMap_[index];
+        if(currentRing == -1 || !goodXstalsEB_[currentRing][ebXstal.iphi()][0])
+            continue;
+
+        icChEB[index] = 1/(((ebXstals_[index].GetSumEt(0)/ebRingsSumEt_[currentRing][0]-1)
+                            /GetChannelKfactor(index, 0).first+1)/icChMeanEB_[currentRing]);
+        if(normalizeAbsIC)
+            icAbsChMeanEB_[currentRing] += icChEB[index]*ebAbsICs_[currentRing][ebXstal.iphi()];
+    }
+    if(normalizeAbsIC)
+    {
+        //---if required normalized the absolute ICs
+        for(int iRing=0; iRing<kNRingsEB; ++iRing)
+            icAbsChMeanEB_[iRing] = icAbsChMeanEB_[iRing]/nGoodInRingEB_[iRing][0];
+    }
     for(uint32_t index=0; index<EBDetId::kSizeForDenseIndexing; ++index)
     {
         EBDetId ebXstal = EBDetId::detIdFromDenseIndex(index);
@@ -307,7 +331,7 @@ void ComputeICs()
             outFile_->eb_xstals.ic_ch = 1/(((ebXstals_[index].GetSumEt(0)/ebRingsSumEt_[currentRing][0]-1)
                                             /outFile_->eb_xstals.k_ch+1)/icChMeanEB_[currentRing]);
             outFile_->eb_xstals.ic_old = ebOldICs_[currentRing][ebXstal.iphi()];
-            outFile_->eb_xstals.ic_abs = ebAbsICs_[currentRing][ebXstal.iphi()];
+            outFile_->eb_xstals.ic_abs = ebAbsICs_[currentRing][ebXstal.iphi()]/icAbsChMeanEB_[currentRing];
             outFile_->eb_xstals.ic_ring_err = ebICRingErr_[currentRing]/(ebRingsSumEt_[currentRing][0]*outFile_->eb_xstals.k_ring);
             outFile_->eb_xstals.ic_ring_err = outFile_->eb_xstals.ic_ring_err/pow(outFile_->eb_xstals.ic_ring, 2);
             outFile_->eb_xstals.ic_ch_err = ebICChErr_[index]/(ebRingsSumEt_[currentRing][0]*outFile_->eb_xstals.k_ch);
@@ -316,7 +340,27 @@ void ComputeICs()
             outFile_->eb_xstals.Fill();
         }
     }
+    
     //---loop over the EE channels and compute the IC
+    float icChEE[EEDetId::kSizeForDenseIndexing];
+    for(uint32_t index=0; index<EEDetId::kSizeForDenseIndexing; ++index)
+    {
+        EEDetId eeXstal = EEDetId::detIdFromDenseIndex(index);
+        int currentRing = eeRingsMap_[index];
+        if(currentRing == -1 || !goodXstalsEE_[currentRing][eeXstal.ix()][eeXstal.iy()][0])
+            continue;
+        
+        icChEE[index] = 1/(((eeXstals_[index].GetSumEt(0)/eeRingsSumEt_[currentRing][0]-1)
+                            /GetChannelKfactor(index, 1).first+1)/icChMeanEE_[currentRing]);        
+        if(normalizeAbsIC)
+            icAbsChMeanEE_[currentRing] += icChEE[index]*eeAbsICs_[eeXstal.ix()][eeXstal.iy()][eeXstal.zside()<0 ? 0 : 1];
+    }
+    if(normalizeAbsIC)
+    {
+        //---if required normalized the absolute ICs
+        for(int iRing=0; iRing<kNRingsEE; ++iRing)
+            icAbsChMeanEE_[iRing] = icAbsChMeanEE_[iRing]/nGoodInRingEE_[iRing][0];
+    }
     for(uint32_t index=0; index<EEDetId::kSizeForDenseIndexing; ++index)
     {
         EEDetId eeXstal = EEDetId::detIdFromDenseIndex(index);
@@ -338,7 +382,8 @@ void ComputeICs()
             outFile_->ee_xstals.ic_ch = 1/(((eeXstals_[index].GetSumEt(0)/eeRingsSumEt_[currentRing][0]-1)
                                             /outFile_->ee_xstals.k_ch+1)/icChMeanEE_[currentRing]);
             outFile_->ee_xstals.ic_old = eeOldICs_[eeXstal.ix()][eeXstal.iy()][eeXstal.zside()<0 ? 0 : 1];
-            outFile_->ee_xstals.ic_abs = eeAbsICs_[eeXstal.ix()][eeXstal.iy()][eeXstal.zside()<0 ? 0 : 1];            
+            outFile_->ee_xstals.ic_abs = eeAbsICs_[eeXstal.ix()][eeXstal.iy()][eeXstal.zside()<0 ? 0 : 1]
+                /icAbsChMeanEE_[currentRing];            
             outFile_->ee_xstals.ic_ring_err = eeICRingErr_[index]/(eeRingsSumEt_[currentRing][0]*outFile_->ee_xstals.k_ring);
             outFile_->ee_xstals.ic_ring_err = outFile_->ee_xstals.ic_ring_err/pow(outFile_->ee_xstals.ic_ring, 2);
             outFile_->ee_xstals.ic_ch_err = eeICChErr_[index]/(eeRingsSumEt_[currentRing][0]*outFile_->ee_xstals.k_ch);
@@ -461,6 +506,7 @@ int main( int argc, char *argv[] )
     vector<string> inputFiles;
     string outputFileBase;
     vector<string> oldICsFiles;
+    normalizeAbsIC=false;
     kFactorsComputed_=false;
     nLumis_=0;
     nEvents_=0;
@@ -470,13 +516,51 @@ int main( int argc, char *argv[] )
     const edm::ParameterSet &filesOpt = process.getParameter<edm::ParameterSet>("ioFilesOpt");
     const edm::ParameterSet &IOVBounds = process.getParameter<edm::ParameterSet>("IOVBounds");
         
-    //---get IOV boundaries
-    vector<int> IOVBeginRuns = IOVBounds.getParameter<vector<int> >("beginRuns");
-    vector<int> IOVEndRuns = IOVBounds.getParameter<vector<int> >("endRuns");
-    vector<int> IOVBeginLumis = IOVBounds.getParameter<vector<int> >("beginLumis");
-    vector<int> IOVEndLumis = IOVBounds.getParameter<vector<int> >("endLumis");    
+    //---get IOV boundaries    
+    vector<PhiSymRunLumi> IOVBegins, IOVEnds;
+    vector<double> IOVTimes;
+    vector<string> maps = IOVBounds.getParameter<vector<string> >("IOVMaps");
     int startingIOV = IOVBounds.getParameter<int>("startingIOV");
     int nIOVs = IOVBounds.getParameter<int>("nIOVs");
+    bool manualSplitting = IOVBounds.getParameter<bool>("manualSplitting");
+    //---search for manual definition of IOVs or get splitting from file
+    if(maps.size() == 0 || manualSplitting)
+    {
+        vector<int> IOVBeginRuns = IOVBounds.getParameter<vector<int> >("beginRuns");
+        vector<int> IOVEndRuns = IOVBounds.getParameter<vector<int> >("endRuns");        
+        for(unsigned int iRun=0; iRun<IOVBeginRuns.size(); ++iRun)
+        {
+            IOVBegins.push_back(PhiSymRunLumi(IOVBeginRuns[iRun], 0));
+            IOVEnds.push_back(PhiSymRunLumi(IOVEndRuns[iRun], 1000000000));
+            IOVTimes.push_back(iRun);
+        }
+    }
+    else
+    {
+        for(auto fileName : maps)
+        {
+            TFile* file = TFile::Open(fileName.c_str(), "READ");
+            TTree* map = (TTree*)file->Get("outTree_barl");
+            int firstRun, lastRun;
+            int firstLumi, lastLumi;
+            double avg_time;
+            map->SetBranchAddress("firstRun", &firstRun);
+            map->SetBranchAddress("lastRun", &lastRun);
+            map->SetBranchAddress("firstLumi", &firstLumi);
+            map->SetBranchAddress("lastLumi", &lastLumi);
+            map->SetBranchAddress("unixTimeMean", &avg_time);
+            for(int iEntry=0; iEntry<map->GetEntriesFast(); ++iEntry)
+            {
+                map->GetEntry(iEntry);
+                IOVBegins.push_back(PhiSymRunLumi(firstRun, firstLumi));
+                IOVEnds.push_back(PhiSymRunLumi(lastRun, lastLumi));
+                IOVTimes.push_back(avg_time);
+            }
+            file->Close();
+        }
+    }
+    //---check the number of IOVs to be processed
+    nIOVs = nIOVs == -1 ? IOVBegins.size() : nIOVs;
     
     //---get input/output files
     outputFileBase = filesOpt.getParameter<string>("outputFile");
@@ -497,7 +581,9 @@ int main( int argc, char *argv[] )
             {
                 if(ebTree.NextEntry(61200*iBlk+1))
                 {
-                    if(ebTree.begin[0] >= IOVBeginRuns[iIOV] && ebTree.end[0] <= IOVEndRuns[iIOV])
+                    PhiSymRunLumi thisBlkBegin(ebTree.begin[0], ebTree.begin[1]);
+                    PhiSymRunLumi thisBlkEnd(ebTree.end[0], ebTree.end[1]);
+                    if(thisBlkBegin >= IOVBegins[iIOV] && thisBlkEnd <= IOVEnds[iIOV])
                         iovInputFiles[iIOV].push_back(fileName);
                 }
             }
@@ -521,9 +607,10 @@ int main( int argc, char *argv[] )
         //---EB
         for(int iRing=0; iRing<kNRingsEB; ++iRing)
         {
+            ebRingsSumEt2_[iRing] = 0;
             icChMeanEB_[iRing] = 0;
             icRMeanEB_[iRing] = 0;
-            ebRingsSumEt2_[iRing] = 0;
+            icAbsChMeanEB_[iRing] = !normalizeAbsIC;
             for(int iMis=0; iMis<=nMisCalib_; ++iMis)
             {
                 ebRingsSumEt_[iRing][iMis] = 0;
@@ -543,6 +630,7 @@ int main( int argc, char *argv[] )
             eeRingsSumEt2_[iRing] = 0;
             icChMeanEE_[iRing] = 0;
             icRMeanEE_[iRing] = 0;
+            icAbsChMeanEE_[iRing] = !normalizeAbsIC;
             for(int iMis=0; iMis<=nMisCalib_; ++iMis)
             {
                 eeRingsSumEt_[iRing][iMis] = 0;
@@ -561,11 +649,20 @@ int main( int argc, char *argv[] )
         nMisCalib_ = -1;
         
         //---output file        
-        TFile* out = TFile::Open((outputFileBase+
-                                  to_string(IOVBeginRuns[iIOV])+"_"+
-                                  to_string(IOVEndRuns[iIOV])+".root").c_str(),
+        TFile* out;
+        if(manualSplitting)
+            out = TFile::Open((outputFileBase+
+                               to_string(IOVBegins[iIOV].run)+"_"+
+                               to_string(IOVEnds[iIOV].run)+".root").c_str(),
+                              "RECREATE");
+        else            
+            out = TFile::Open((outputFileBase+
+                                  to_string(IOVBegins[iIOV].run)+"-"+to_string(IOVBegins[iIOV].lumi)+"_"+
+                                  to_string(IOVEnds[iIOV].run)+"-"+to_string(IOVEnds[iIOV].lumi)+".root").c_str(),
                                  "RECREATE");
         outFile_ = auto_ptr<CalibrationFile>(new CalibrationFile(out));
+        outFile_->eb_xstals.avg_time = IOVTimes[iIOV];
+        outFile_->ee_xstals.avg_time = IOVTimes[iIOV];
 
         //---read old ICs (maybe IOV dependent)
         Read2012ICs(oldICsFiles[0]);
@@ -586,8 +683,8 @@ int main( int argc, char *argv[] )
             CrystalsEETree eeTree((TTree*)file->Get("ee_xstals"));
 
             cout << "IOV: " << iIOV << endl;
-            cout << "Reading file: " << fileName.c_str() << "..." << endl;
-        
+            cout << "Reading file: " << fileName.c_str() << " / blk: " << ebTree.block << "..." << endl;
+            
             //---get miscalib values
             if(nMisCalib_ == -1)
             {
@@ -621,7 +718,9 @@ int main( int argc, char *argv[] )
             while(ebTree.NextEntry())
             {
                 //---skip unwanted blocks
-                if(ebTree.begin[0] < IOVBeginRuns[iIOV] || ebTree.end[0] > IOVEndRuns[iIOV])
+                PhiSymRunLumi thisBlkBegin(ebTree.begin[0], ebTree.begin[1]);
+                PhiSymRunLumi thisBlkEnd(ebTree.end[0], ebTree.end[1]);
+                if(thisBlkBegin < IOVBegins[iIOV] || thisBlkEnd > IOVEnds[iIOV])                    
                     continue;
                 
                 //---counts summed lumis
@@ -654,7 +753,9 @@ int main( int argc, char *argv[] )
             while(eeTree.NextEntry())
             {
                 //---skip unwanted blocks
-                if(eeTree.begin[0] < IOVBeginRuns[iIOV] || eeTree.end[0] > IOVEndRuns[iIOV])
+                PhiSymRunLumi thisBlkBegin(eeTree.begin[0], eeTree.begin[1]);
+                PhiSymRunLumi thisBlkEnd(eeTree.end[0], eeTree.end[1]);
+                if(thisBlkBegin < IOVBegins[iIOV] || thisBlkEnd > IOVEnds[iIOV])                    
                     continue;
                 
                 int currentRing = eeTree.iring;
@@ -697,7 +798,7 @@ int main( int argc, char *argv[] )
             {
                 pair<float, float> tmp = PhiSym::VectorMeanRMS(ebRingsSumEts[iRing],
                                                                iRm, ebRingsSumEts[iRing].size()-1-iRm);
-                if(mean == -1 || fabs(mean-tmp.first)/mean>0.0005)
+                if(mean == -1 || fabs(mean-tmp.first)/mean>0.0005 || tmp.second/tmp.first<0.01)
                 {
                     mean = tmp.first;
                     rms = tmp.second;
@@ -726,7 +827,7 @@ int main( int argc, char *argv[] )
             {
                 pair<float, float> tmp = PhiSym::VectorMeanRMS(eeRingsSumEts[iRing],
                                                                iRm, eeRingsSumEts[iRing].size()-1-iRm);
-                if(mean == -1 || fabs(mean-tmp.first)/mean>0.001)
+                if(mean == -1 || fabs(mean-tmp.first)/mean>0.001 || tmp.second/tmp.first<0.01)
                 {
                     mean = tmp.first;
                     rms = tmp.second;

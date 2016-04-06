@@ -13,7 +13,8 @@
 | 24-08-15 | PhiSym2015A_v4    | Run2015B_v6  | Run2015A_all.json        | CMSSW_7_4_6_patch6  |
 | 01-10-15 | PhiSym2015C_v1    | Run2015CD_v1 | Run2015ABCD_DCSONLY.json | CMSSW_7_4_12_patch4 |
 | 01-10-15 | PhiSym2015D_v1    | Run2015CD_v1 | Run2015ABCD_DCSONLY.json | CMSSW_7_4_12_patch4 |
-
+| 13-10-15 | PhiSym2015C_v2    | Run2015CD_v2 | Run2015ABCD_DCSONLY.json | CMSSW_7_4_12_patch4 |
+| 13-10-15 | PhiSym2015D_v2    | Run2015CD_v2 | Run2015ABCD_DCSONLY.json | CMSSW_7_4_12_patch4 |
 
 * Dataset table -> das convertion
 + PhiSym2015A_v1 = /AlCaPhiSym/spigazzi-crab_PHISYM-CMSSW_741-weights-_GR_P_V56-Run2015A_v1-d1d8759b5763650129fcdb1ec58b4e6a/
@@ -37,5 +38,7 @@
   + problems may arise from different material, e.g. transition from TB to TE or from lower noise in the foward region
 + PhiSym2015C_v1 = /AlCaPhiSym/spigazzi-crab_PHISYM-CMSSW_7412-weights-74X_dataRun2_Prompt_withOfflineCustomisations_v0-Run2015C_v1-21ad3069aed071ecb2dfc875e37e6e65/USER
   + produced with DCSonly json of 30-09-15
+  + STREAM not fully available!
 + PhiSym2015D_v1 = /AlCaPhiSym/spigazzi-crab_PHISYM-CMSSW_7412-weights-74X_dataRun2_Prompt_withOfflineCustomisations_v0-Run2015D_v1-21ad3069aed071ecb2dfc875e37e6e65/USER
   + produced with DCSonly json of 30-09-15
+  + STREAM not fully available!

@@ -1,9 +1,12 @@
 from WMCore.Configuration import Configuration
 
+#recoType = "weights"
+recoType = "multifit"
+
 config = Configuration()
 
 config.section_('General')
-config.General.requestName       = 'PHISYM-CMSSW_7412-weights-74X_dataRun2_Prompt_withOfflineCustomisations_v0-Run2015C_v1'
+config.General.requestName       = 'PHISYM-CMSSW_7415-'+recoType+'-74X_dataRun2_Prompt_v4-Run2015C_v2'
 config.General.transferLogs      = True
 config.General.transferOutputs   = True
 
@@ -11,7 +14,8 @@ config.section_('JobType')
 config.JobType.pluginName        = 'Analysis'
 
 # Name of the CMSSW configuration file
-config.JobType.psetName          = 'PhiSymProducer_cfg.py'
+config.JobType.psetName          = 'PhiSymProducer_'+recoType+'_cfg.py'
+config.JobType.inputFiles      = ['ecaltemplates_popcon_weekly_best.db', 'ecalcovariances_popcon_weekly_best.db']
 config.JobType.priority          = 30
 
 config.section_('Data')
