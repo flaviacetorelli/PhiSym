@@ -42,9 +42,9 @@ for eosdir in options.eosdirs:
     if "/eos/cms/store/group/dpg_ecal/alca_ecalcalib/phiSymmetry/AlCaPhiSym/" not in eosdir:
         eosdir = "/eos/cms/store/group/dpg_ecal/alca_ecalcalib/phiSymmetry/AlCaPhiSym/"+eosdir
     print('>> Creating list of files from: \n'+eosdir)
-    lsCmd = subprocess.Popen(['eos', 'ls', eosdir+'*.root'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    lsCmd = subprocess.Popen(['ls '+eosdir+'*.root'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     str_files, err = lsCmd.communicate()
-    files.extend(['root://eoscms/'+eosdir+ifile for ifile in str_files.split("\n")])
+    files.extend(['root://eoscms/'+ifile for ifile in str_files.split("\n")])
     files.pop()
     if options.debug:
         for ifile in files:

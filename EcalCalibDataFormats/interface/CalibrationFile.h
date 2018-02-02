@@ -37,6 +37,7 @@ public:
     int           block;
     int           n_lumis;
     Long64_t      n_events;
+    double        eflow_norm;
     float         bounds[2]={0};
     float         mean_bs_x;
     float         mean_bs_sigmax;
@@ -74,6 +75,7 @@ CrystalsEBTree::CrystalsEBTree()
     block=0;
     n_lumis=0;
     n_events=0;
+    eflow_norm=0;    
     mean_bs_x=0;
     mean_bs_sigmax=0;
     mean_bs_y=0;
@@ -102,7 +104,8 @@ CrystalsEBTree::CrystalsEBTree()
     tree_->Branch("end", &end, "end[2]/I");
     tree_->Branch("block", &block, "block/I");
     tree_->Branch("n_lumis", &n_lumis, "n_lumis/I");
-    tree_->Branch("n_events", &n_events, "n_events/L");    
+    tree_->Branch("n_events", &n_events, "n_events/L");
+    tree_->Branch("eflow_norm", &eflow_norm, "eflow_norm/D");        
     tree_->Branch("bounds", &bounds, "bounds[2]/F");
     tree_->Branch("mean_bs_x", &mean_bs_x, "mean_bs_x/F");
     tree_->Branch("mean_bs_sigmax", &mean_bs_sigmax, "mean_bs_sigmax/F");
@@ -140,6 +143,7 @@ CrystalsEBTree::CrystalsEBTree(TTree* tree)
     block=0;
     n_lumis=0;
     n_events=0;
+    eflow_norm=0;    
     mean_bs_x=0;
     mean_bs_sigmax=0;
     mean_bs_y=0;
@@ -169,6 +173,7 @@ CrystalsEBTree::CrystalsEBTree(TTree* tree)
     tree_->SetBranchAddress("block", &block);
     tree_->SetBranchAddress("n_lumis", &n_lumis);
     tree_->SetBranchAddress("n_events", &n_events);
+    tree_->SetBranchAddress("eflow_norm", &eflow_norm);    
     tree_->SetBranchAddress("bounds", &bounds[0]);
     tree_->SetBranchAddress("mean_bs_x", &mean_bs_x);
     tree_->SetBranchAddress("mean_bs_sigmax", &mean_bs_sigmax);
@@ -235,6 +240,7 @@ public:
     int           block;
     int           n_lumis;
     Long64_t      n_events;
+    double        eflow_norm;
     float         mean_bs_x;
     float         mean_bs_sigmax;
     float         mean_bs_y;
@@ -272,6 +278,7 @@ CrystalsEETree::CrystalsEETree()
     block=0;
     n_lumis=0;
     n_events=0;
+    eflow_norm=0;
     mean_bs_x=0;
     mean_bs_sigmax=0;
     mean_bs_y=0;
@@ -302,6 +309,7 @@ CrystalsEETree::CrystalsEETree()
     tree_->Branch("block", &block, "block/I");
     tree_->Branch("n_lumis", &n_lumis, "n_lumis/I");
     tree_->Branch("n_events", &n_events, "n_events/L");
+    tree_->Branch("eflow_norm", &eflow_norm, "eflow_norm/D");
     tree_->Branch("mean_bs_x", &mean_bs_x, "mean_bs_x/F");
     tree_->Branch("mean_bs_sigmax", &mean_bs_sigmax, "mean_bs_sigmax/F");
     tree_->Branch("mean_bs_y", &mean_bs_y, "mean_bs_y/F");
@@ -338,6 +346,7 @@ CrystalsEETree::CrystalsEETree(TTree* tree)
     block=0;
     n_lumis=0;
     n_events=0;
+    eflow_norm=0;
     mean_bs_x=0;
     mean_bs_sigmax=0;
     mean_bs_y=0;
@@ -368,6 +377,7 @@ CrystalsEETree::CrystalsEETree(TTree* tree)
     tree_->SetBranchAddress("block", &block);
     tree_->SetBranchAddress("n_lumis", &n_lumis);
     tree_->SetBranchAddress("n_events", &n_events);
+    tree_->SetBranchAddress("eflow_norm", &eflow_norm);    
     tree_->SetBranchAddress("mean_bs_x", &mean_bs_x);
     tree_->SetBranchAddress("mean_bs_sigmax", &mean_bs_sigmax);
     tree_->SetBranchAddress("mean_bs_y", &mean_bs_y);

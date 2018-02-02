@@ -61,7 +61,7 @@ if __name__ == "__main__":
     parser.add_option("-i", "--ls-info-file", dest="ls_info_file", type="string", default="")
     parser.add_option("-o", "--output", dest="output", type="string", default="readMap.root")
     parser.add_option("-t","--max-time", dest="maxTime", type = "int", default=86400)
-    parser.add_option("-l","--lumi-ile", dest="lumiFile", type = "string", default="")
+    parser.add_option("-l","--lumi-file", dest="lumiFile", type = "string", default="")
     (options, args) = parser.parse_args()
 
     timeMap = {}
@@ -78,8 +78,10 @@ if __name__ == "__main__":
 
     ###--- Certification json
     if options.lumiFile != "":
-        with open(options.ls_info_file) as json_file:
+        with open(options.lumiFile) as json_file:
             goodLumisMap = json.load(json_file)
+            if options.debug:
+                print(goodLumisMap)
     
     nMaxHits=options.maxHit    
     maxStopTime=options.maxTime

@@ -513,7 +513,7 @@ int main( int argc, char *argv[] )
         
     //---get IOV boundaries    
     vector<PhiSymRunLumi> IOVBegins, IOVEnds;
-    vector<double> IOVTimes;
+    vector<double> IOVTimes, IOVNormalization;
     vector<char> IOVFlags;
     vector<string> maps = IOVBounds.getParameter<vector<string> >("IOVMaps");
     int startingIOV = IOVBounds.getParameter<int>("startingIOV");
@@ -541,8 +541,9 @@ int main( int argc, char *argv[] )
             char flag;
             int firstRun, lastRun;
             int firstLumi, lastLumi;
-            double avg_time;
+            double avg_time=0, norm=0;
             map->SetBranchAddress("flag", &flag);
+            map->SetBranchAddress("norm", &norm);            
             map->SetBranchAddress("firstRun", &firstRun);
             map->SetBranchAddress("lastRun", &lastRun);
             map->SetBranchAddress("firstLumi", &firstLumi);
@@ -554,6 +555,7 @@ int main( int argc, char *argv[] )
                 IOVBegins.push_back(PhiSymRunLumi(firstRun, firstLumi));
                 IOVEnds.push_back(PhiSymRunLumi(lastRun, lastLumi));
                 IOVTimes.push_back(avg_time);
+                IOVNormalization.push_back(norm);
                 IOVFlags.push_back(flag);
             }
             file->Close();
@@ -671,10 +673,12 @@ int main( int argc, char *argv[] )
                                   to_string(IOVEnds[iIOV].run)+"-"+to_string(IOVEnds[iIOV].lumi)+".root").c_str(),
                                  "RECREATE");
         outFile_ = auto_ptr<CalibrationFile>(new CalibrationFile(out));        
-        outFile_->eb_xstals.avg_time = IOVTimes[iIOV];
-        outFile_->ee_xstals.avg_time = IOVTimes[iIOV];
-        outFile_->eb_xstals.iov_flag = IOVFlags[iIOV];
-        outFile_->ee_xstals.iov_flag = IOVFlags[iIOV];
+        outFile_->eb_xstals.avg_time   = IOVTimes[iIOV];
+        outFile_->ee_xstals.avg_time   = IOVTimes[iIOV];
+        outFile_->eb_xstals.iov_flag   = IOVFlags[iIOV];
+        outFile_->ee_xstals.iov_flag   = IOVFlags[iIOV];
+        outFile_->eb_xstals.eflow_norm = IOVNormalization[iIOV];
+        outFile_->ee_xstals.eflow_norm = IOVNormalization[iIOV];
 
         //---read old ICs (maybe IOV dependent)
         Read2012ICs(oldICsFiles[0]);

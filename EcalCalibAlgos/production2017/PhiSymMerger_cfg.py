@@ -20,6 +20,7 @@ process.GlobalTag = GlobalTag(process.GlobalTag, '90X_dataRun2_Prompt_v3')
 
 # Input source
 process.source = cms.Source("PoolSource",
+                            processingMode = cms.untracked.string("RunsAndLumis"),
                             fileNames = cms.untracked.vstring(
                                 "/store/group/dpg_ecal/alca_ecalcalib/phiSymmetry/AlCaPhiSym/crab_PHISYM-CMSSW_9_0_3-weights-90X_dataRun2_Prompt_v3-Comm2017_v1/170515_113632/0000/phisym_weights_1lumis_100.root"
                             )

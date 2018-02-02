@@ -68,7 +68,7 @@ public:
     //---Main method
     float Fit()
         {
-            ROOT::Math::Functor fChi2(this, &AlphaFitter::chi2, 1);
+            ROOT::Math::Functor fChi2(this, &AlphaFitter::chi2, 2);
             ROOT::Math::Minimizer* min = ROOT::Math::Factory::CreateMinimizer("Minuit", "Migrad");            
             min->SetMaxFunctionCalls(1000000);
             min->SetMaxIterations(100000);
@@ -77,16 +77,16 @@ public:
 
             min->SetFunction(fChi2);
             min->SetLimitedVariable(0, "delta_alpha", 0., 1e-3, -2., 2.);
-            //min->SetFixedVariable(1, "scale", 1);//, 1e-3, 0.9, 1.1);
+            min->SetLimitedVariable(1, "scale", 1., 1e-3, 0.9, 1.1);
             
             min->Minimize();
 
             auto delta_alpha = min->X()[0];
-            best_fit_alpha_ = alpha_db_+delta_alpha;
-            best_fit_alpha_err_ = min->Errors()[0];
-            best_fit_chi2_ = min->MinValue()/(n_points_-1);
-            best_fit_scale_ = 1;//min->X()[1];
-            best_fit_scale_err_ = -1;//min->Errors()[1];
+            best_fit_chi2_ = min->MinValue()/(n_points_-2);
+            best_fit_alpha_ = best_fit_chi2_>0 ? alpha_db_+delta_alpha : -1;
+            best_fit_alpha_err_ = best_fit_chi2_>0 ? min->Errors()[0] : -1;
+            best_fit_scale_ = min->X()[1];
+            best_fit_scale_err_ = min->Errors()[1];
 
             delete min;
             return delta_alpha;
@@ -98,8 +98,11 @@ protected:
             double chi2=0;
 #pragma omp parallel for reduction(+:chi2) 
             for(int point=0; point<n_points_; ++point)
-                chi2 += pow((eflow_ratio_[point]*correction(lc_[point]/lc_[0], par[0])-1)/(eflow_ratio_err_[point]), 2);
-
+            {
+                if(lc_[point] > 0)
+                    chi2 += pow((eflow_ratio_[point]*correction(lc_[point]/lc_[0], par[0])-par[1])/(eflow_ratio_err_[point]), 2);
+            }
+            
             return chi2;
         };
 

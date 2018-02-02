@@ -35,4 +35,4 @@ config.Data.outLFNDirBase        = '/store/group/dpg_ecal/alca_ecalcalib/phiSymm
 config.section_('Site')
 # Where the output files will be transmitted to
 config.Site.storageSite          = 'T2_CH_CERN'
-config.Site.blacklist            = ['T2_US_Nebraska']
+config.Site.blacklist            = ['T2_US_Nebraska','T3_US_*']

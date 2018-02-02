@@ -1,0 +1,14 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+[remote "upstream"]
+	url = https://github.com/ECALELFS/PhiSym
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "Run2017"]
+	remote = origin
+	merge = refs/heads/Run2017
+[remote "origin"]
+	url = git@github.com:abeschi/PhiSym.git
+	fetch = +refs/heads/*:refs/remotes/origin/*

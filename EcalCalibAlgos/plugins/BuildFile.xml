@@ -8,13 +8,11 @@
 <use   name="DataFormats/EcalDetId"/>
 <use   name="CondFormats/EcalObjects"/>
 <use   name="CondFormats/DataRecord"/>
-<use   name="CondTools/Ecal"/>
 <use   name="Geometry/CaloGeometry"/>
 <use   name="Geometry/CaloTopology"/>
 <use   name="Geometry/EcalAlgo"/>
 <use   name="RecoEcal/EgammaCoreTools"/>
 <use   name="RecoLocalCalo/EcalRecAlgos"/>
-<use   name="Calibration/Tools"/>
 <use   name="CalibCalorimetry/CaloMiscalibTools"/>
 <use   name="PhiSym/EcalCalibDataFormats"/>
 <use   name="PhiSym/EcalCalibAlgos"/>

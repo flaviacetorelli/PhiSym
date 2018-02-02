@@ -18,6 +18,7 @@ proxy='/tmp/x509up_u68758'
 storage='T3_IT_MIB'
 template='run_RECO_template.py'
 user_tmpl=0
+help=0
 
 while true; do
     case "$1" in
@@ -37,6 +38,23 @@ while true; do
         * ) break ;;
     esac
 done
+
+if [ $help == 1 ]; then
+    echo "Options: "
+    echo "-d | --dataset"
+    echo "-g | --globaltag"
+    echo "-j | --lumijson"
+    echo "-m | --mod"
+    echo "-l | --localreco"
+    echo "-p | --proxy"
+    echo "-h | --help"
+    echo "--iovmap"
+    echo "--storage"
+    echo "--template"
+    echo "--merger"
+    echo "--dryrun"
+    exit 0
+fi
 
 echo "Submission log:"
 echo "---------------"

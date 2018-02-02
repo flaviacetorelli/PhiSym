@@ -1,3 +1,4 @@
+import subprocess
 import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
 from Configuration.AlCa.GlobalTag import GlobalTag
@@ -6,12 +7,22 @@ from Configuration.AlCa.GlobalTag import GlobalTag
 options = VarParsing('analysis')
 options.maxEvents = -1
 options.outputFile = 'phisym_multifit_1lumis.root'
+options.register('datasets',
+                 '',
+                 VarParsing.multiplicity.list,
+                 VarParsing.varType.string,
+                 "Input dataset(s)")
+options.register('debug',
+                 False,
+                 VarParsing.multiplicity.singleton,
+                 VarParsing.varType.bool,
+                 "Print debug messages")
 options.parseArguments()
 
 process=cms.Process("PHISYM")
 
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
-process.load('Configuration.Geometry.GeometryExtended2015Reco_cff')
+process.load('Configuration.Geometry.GeometryExtended2017Reco_cff')
 process.load('Configuration.StandardSequences.L1Reco_cff')
 process.load('Configuration.StandardSequences.RawToDigi_Data_cff')
 process.load('RecoLuminosity.LumiProducer.bunchSpacingProducer_cfi')
@@ -39,15 +50,31 @@ process.options = cms.untracked.PSet(
 )
 
 # Input source
+files = []
+for dataset in options.datasets:
+    print('>> Creating list of files from: \n'+dataset)
+    query = "--query='file instance=prod/global dataset="+dataset+"'"
+    if options.debug:
+        print(query)
+    lsCmd = subprocess.Popen(['das_client.py '+query+' --limit=0'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    str_files, err = lsCmd.communicate()
+    files.extend(['root://cms-xrd-global.cern.ch/'+ifile for ifile in str_files.split("\n")])
+    files.pop()
+    if options.debug:
+        for ifile in files:
+            print(ifile)
+
 process.source = cms.Source("PoolSource",
 #                             inputCommands = cms.untracked.vstring(
 #                                 'keep *',
 #                                 'drop *_hltEcalDigis_*_*',
 #                                 'drop *_hltTriggerSummaryAOD_*_*'
 #                             ),
+                            #fileNames = cms.untracked.vstring(files)
                             fileNames = cms.untracked.vstring(
-                                "/store/data/Commissioning2016/AlCaPhiSym/RAW/v1/000/268/930/00000/D624B590-A2FD-E511-B7AD-02163E011AEE.root"
-))
+                                "root://eoscms//eos/cms/store/data/Run2016B/AlCaPhiSym/RAW/v1/000/272/798/00000/0040CAC7-8114-E611-B271-02163E0135C0.root"
+                            )
+                        )
 
 # Production Info
 process.configurationMetadata = cms.untracked.PSet(
@@ -71,9 +98,9 @@ process.ecalRecHit.recoverEBIsolatedChannels = cms.bool( False )
 
 # PHISYM producer
 process.load('PhiSym.EcalCalibAlgos.PhiSymProducer_cfi')
-#process.PhiSymProducer.makeSpectraTreeEB = True
-#process.PhiSymProducer.makeSpectraTreeEE = True
-process.PhiSymProducer.eThreshold_barrel = 0.9
+# process.PhiSymProducer.makeSpectraTreeEB = True
+# process.PhiSymProducer.makeSpectraTreeEE = True
+#process.PhiSymProducer.eThreshold_barrel = 1.1
 process.PhiSymProducer.thrEEmod = 14.
 
 # Output definition
@@ -106,22 +133,34 @@ process.GlobalTag = cms.ESSource("PoolDBESSource",
                                          tag = cms.string('EcalLaserAlphas_EB_1.52Russian_1.5Chinese'),
                                          connect = cms.string('frontier://FrontierPrep/CMS_CONDITIONS')
                                      ),
-                                     cms.PSet(record = cms.string("ESIntercalibConstantsRcd"),
-                                              tag = cms.string("ESIntercalibConstants_Run1_Run2_V07_offline"),
-                                              connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
-                                          ),
-                                     cms.PSet(record = cms.string("ESEEIntercalibConstantsRcd"),
-                                              tag = cms.string("ESEEIntercalibConstants_Legacy2016_v3"),
-                                              connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
-                                          ),
-                                     cms.PSet(record = cms.string("EcalIntercalibConstantsRcd"),
-                                              tag = cms.string("EcalIntercalibConstants_Cal_Mar2017_PNcorrection_eop_v2"),
-                                              connect = cms.string('frontier://FrontierPrep/CMS_CONDITIONS')
-                                          ),
                                      cms.PSet(record = cms.string("EcalLinearCorrectionsRcd"),
                                               tag = cms.string("EcalLinearCorrections_from2011_offline"),
                                               connect = cms.string("frontier://FrontierPrep/CMS_CONDITIONS"),
                                           ),
+                                 #     globaltag = cms.string('92X_dataRun2_Prompt_v9'),
+                                 # # Get individual tags (template)
+                                 # toGet = cms.VPSet(
+                                 #     cms.PSet(record = cms.string("EcalADCToGeVConstantRcd"),
+                                 #              tag = cms.string("EcalADCToGeVConstant_plus_2.4prct_in_EE"),
+                                 #              connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
+                                 #          ),
+                                 #     cms.PSet(record = cms.string("EcalIntercalibConstantsRcd"),
+                                 #              tag = cms.string("EcalIntercalibConstants_2017_2015_at_high_eta"),
+                                 #              connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
+                                 #          ),
+                                 #     # cms.PSet(record = cms.string("EcalPedestalsRcd"),
+                                 #     #          tag = cms.string("EcalPedestals_Legacy2017_time_v1"),
+                                 #     #          connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
+                                 #     #      ),
+                                 #     cms.PSet(
+                                 #         record = cms.string('EcalLaserAPDPNRatiosRcd'),
+                                 #         tag = cms.string('EcalLaserAPDPNRatios_offline_2017pp_v4_for_tests'),
+                                 #         connect = cms.string('frontier://FrontierProd/CMS_CONDITIONS')
+                                 #     ),
+                                 #     cms.PSet(record = cms.string("EcalPulseShapesRcd"),
+                                 #              tag = cms.string("EcalPulseShapes_October2017_rereco_v1"),
+                                 #              connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
+                                 #     ),
                                  )
 )
 

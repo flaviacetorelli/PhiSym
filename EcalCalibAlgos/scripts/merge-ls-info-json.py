@@ -61,8 +61,9 @@ if __name__ == "__main__":
                 run_num = str(info[0])
                 lumi_num = str(info[1])
                 if run_num in pu_data.keys() and lumi_num in pu_data[run_num].keys():
-                    info[3] = info[3]*float(pu_data[run_num][lumi_num])
-                    data[time] = info
+                    if float(pu_data[run_num][lumi_num]) > 0:
+                        info[3] = info[3]*float(pu_data[run_num][lumi_num])
+                        data[time] = info
 
     merged_json = eosdir+'/ls_info.json' if options.output == "" else options.output
     with open(merged_json, "w") as json_file:
