@@ -126,9 +126,9 @@ PhiSymProducer::PhiSymProducer(const edm::ParameterSet& pSet):
     makeSpectraTreeEE_(pSet.getUntrackedParameter<bool>("makeSpectraTreeEE"))
 {    
     //---register the product
-    produces<PhiSymInfoCollection, edm::InLumi>();
-    produces<PhiSymRecHitCollection, edm::InLumi>("EB");
-    produces<PhiSymRecHitCollection, edm::InLumi>("EE");
+    produces<PhiSymInfoCollection, edm::Transition::EndLuminosityBlock>();
+    produces<PhiSymRecHitCollection, edm::Transition::EndLuminosityBlock>("EB");
+    produces<PhiSymRecHitCollection, edm::Transition::EndLuminosityBlock>("EE");
 
     //---create spectra output file
     if(makeSpectraTreeEB_)
@@ -256,19 +256,23 @@ void PhiSymProducer::beginLuminosityBlock(edm::LuminosityBlock const& lumi, edm:
 
 void PhiSymProducer::endLuminosityBlockProduce(edm::LuminosityBlock& lumi, edm::EventSetup const& setup)    
 {
+
     //---put the collection in the LuminosityBlocks tree
     if(nLumis_ == lumisToSum_)
     {
+
         lumiInfo_->back().SetEndLumi(lumi);
 
         //---dump LS information into json
         if(!outLSInfoJson_.is_open())
         {
-            //---CRAB3 only transfers files ending in .root, so name this .root even though is a json
+           
+	 //---CRAB3 only transfers files ending in .root, so name this .root even though is a json
             outLSInfoJson_.open("phisym_lumi_info_json.root", ofstream::out);
             outLSInfoJson_ << "{" << endl;
         }
         else
+
             outLSInfoJson_ << "," << endl;
 
         outLSInfoJson_ << "\"" << lumi.luminosityBlockAuxiliary().beginTime().unixTime() << "\" : " 
@@ -278,11 +282,12 @@ void PhiSymProducer::endLuminosityBlockProduce(edm::LuminosityBlock& lumi, edm::
                        << lumiInfo_->back().GetTotHitsEB() << ","
                        << lumiInfo_->back().GetNEvents() 
                        << "]";
-        
+
         lumi.put(std::move(lumiInfo_));
         lumi.put(std::move(recHitCollEB_), "EB");
         lumi.put(std::move(recHitCollEE_), "EE");
         nLumis_ = 0;
+
     }
 }
 
@@ -369,7 +374,6 @@ void PhiSymProducer::produce(edm::Event& event, const edm::EventSetup& setup)
             outEBTree_.GetTTreePtr()->Fill();
         }
     }
-
     //---EE---
     for(auto& recHit : *endcapRecHitsHandle_.product())
     {
