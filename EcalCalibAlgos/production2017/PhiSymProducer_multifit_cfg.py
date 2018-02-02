@@ -72,7 +72,7 @@ process.source = cms.Source("PoolSource",
 #                             ),
                             #fileNames = cms.untracked.vstring(files)
                             fileNames = cms.untracked.vstring(
-                                "/store/data/Commissioning2017/AlCaPhiSym/RAW/v1/000/293/910/00000/0018D0AC-7C37-E711-9F45-02163E019E4E.root"
+                                "/store/data/Run2017B/AlCaPhiSym/RAW/v1/000/297/039/00000/B006DCE2-C652-E711-8B9E-02163E014660.root"
                             )
                         )
 
