@@ -100,7 +100,7 @@ float  icAbsChMeanEE_[kNRingsEE];
 bool kFactorsComputed_;
 
 //---outputs
-auto_ptr<CalibrationFile> outFile_;
+unique_ptr<CalibrationFile> outFile_;
 
 //**********FUNCTIONS*********************************************************************
 //----------compute the ring-dependent k-factors for both EB and EE-----------------------
@@ -510,7 +510,7 @@ int main( int argc, char *argv[] )
     auto process = edm::readConfig(argv[1], argc, argv);
     const edm::ParameterSet &filesOpt = process->getParameter<edm::ParameterSet>("ioFilesOpt");
     const edm::ParameterSet &IOVBounds = process->getParameter<edm::ParameterSet>("IOVBounds");
-        
+
     //---get IOV boundaries    
     vector<PhiSymRunLumi> IOVBegins, IOVEnds;
     vector<double> IOVTimes, IOVNormalization;
@@ -530,6 +530,7 @@ int main( int argc, char *argv[] )
             IOVEnds.push_back(PhiSymRunLumi(IOVEndRuns[iRun], 1000000000));
             IOVTimes.push_back(iRun);
             IOVFlags.push_back('M');
+            IOVNormalization.push_back(-9999.);
         }
     }
     else
@@ -563,7 +564,7 @@ int main( int argc, char *argv[] )
     }
     //---check the number of IOVs to be processed
     nIOVs = nIOVs == -1 ? IOVBegins.size() : nIOVs;
-    
+
     //---get input/output files
     outputFileBase = filesOpt.getParameter<string>("outputFile");
     inputFiles = filesOpt.getParameter<vector<string> >("inputFiles");
@@ -662,17 +663,21 @@ int main( int argc, char *argv[] )
         
         //---output file        
         TFile* out;
+
+
         if(manualSplitting)
-            out = TFile::Open((outputFileBase+
+		  out = TFile::Open((outputFileBase+
                                to_string(IOVBegins[iIOV].run)+"_"+
                                to_string(IOVEnds[iIOV].run)+".root").c_str(),
                               "RECREATE");
+
         else            
             out = TFile::Open((outputFileBase+
                                   to_string(IOVBegins[iIOV].run)+"-"+to_string(IOVBegins[iIOV].lumi)+"_"+
                                   to_string(IOVEnds[iIOV].run)+"-"+to_string(IOVEnds[iIOV].lumi)+".root").c_str(),
                                  "RECREATE");
-        outFile_ = auto_ptr<CalibrationFile>(new CalibrationFile(out));        
+
+        outFile_ = unique_ptr<CalibrationFile>(new CalibrationFile(out));   
         outFile_->eb_xstals.avg_time   = IOVTimes[iIOV];
         outFile_->ee_xstals.avg_time   = IOVTimes[iIOV];
         outFile_->eb_xstals.iov_flag   = IOVFlags[iIOV];
@@ -691,6 +696,7 @@ int main( int argc, char *argv[] )
         for(int iRing=0; iRing<kNRingsEE; ++iRing)
             eeRingsSumEts[iRing].reserve(EEDetId::kSizeForDenseIndexing);
         //---files loop 1
+
         for(auto& fileName : iovInputFiles[iIOV])
         {
             //---open the next file
@@ -704,7 +710,7 @@ int main( int argc, char *argv[] )
 
             cout << "IOV: " << iIOV << endl;
             cout << "Reading file: " << fileName.c_str() << " / blk: " << ebTree.block << "..." << endl;
-            
+
             //---get miscalib values
             if(nMisCalib_ == -1)
             {
@@ -731,6 +737,7 @@ int main( int argc, char *argv[] )
                         misCalibValuesEE_->push_back(0.02*(float)iMis + 1);
                 }
             }
+
             nMisCalib_=10;
 
             int currentBlock=-1;
@@ -813,7 +820,6 @@ int main( int argc, char *argv[] )
             }
             file->Close();
         }
-
         //---compute sumEt cuts by ring
         //---EB
         for(int index=0; index<EBDetId::kSizeForDenseIndexing; ++index)

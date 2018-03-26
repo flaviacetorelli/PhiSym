@@ -25,7 +25,7 @@ config.Data.lumiMask             = ''
 config.Data.unitsPerJob          = 10
 config.Data.totalUnits           = -1
 config.Data.publication          = True
-config.Data.ignoreLocality       = True
+config.Data.ignoreLocality       = False
 #config.Data.isbchecksum          = 'aa6d0f694fbde2c60e6338a92e82f36e'
 
 # This string is used to construct the output dataset name

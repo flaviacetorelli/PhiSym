@@ -26,7 +26,7 @@ config.Data.lumiMask           = ''
 config.Data.unitsPerJob        = 100
 config.Data.totalUnits         = -1
 config.Data.publication        = False
-config.Data.ignoreLocality     = True
+config.Data.ignoreLocality     = False
 
 # This string is used to construct the output dataset name
 #config.Data.publishDataName = 'CRAB3-tutorial'

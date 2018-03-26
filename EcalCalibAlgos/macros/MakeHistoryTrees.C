@@ -97,8 +97,8 @@ void MakeHistoryTreesEE(std::vector<INT> ee_iovs, std::vector<INT> ee_even_iovs,
             ee_ratio->ic_ratio_rel[iV-ref] = ee_iovs[iV]->ic_ch/ee_iovs[iV==0?0:iV-1]->ic_ch; 
             ee_ratio->ic_precision[iV-ref] = ee_even_iovs[iV]->ic_ch/ee_odd_iovs[iV]->ic_ch;   
             ee_ratio->k_ratio_abs[iV-ref] = ee_iovs[iV]->k_ch/ee_iovs[ref]->k_ch; 
-            ee_ratio->k_ratio_rel[iV-ref] = ee_iovs[iV]->k_ch/ee_iovs[iV==0?0:iV-1]->k_ch; 
-            ee_ratio->eflow_abs[iV-ref] = 1+((ee_iovs[iV]->rec_hit->GetSumEt()/etSumEB[iV])/(ee_iovs[ref]->rec_hit->GetSumEt()/etSumEB[ref])-1)/ee_iovs[iV]->k_ch; 
+            ee_ratio->k_ratio_rel[iV-ref] = ee_iovs[iV]->k_ch/ee_iovs[iV==0?0:iV-1]->k_ch;  
+            ee_ratio->eflow_abs[iV-ref] = (eb_iovs[iV]->rec_hit->GetSumEt() == 0 ? -1 : 1+((ee_iovs[iV]->rec_hit->GetSumEt()/etSumEB[iV])/(ee_iovs[ref]->rec_hit->GetSumEt()/etSumEB[ref])-1)/ee_iovs[iV]->k_ch); 
             ee_ratio->eflow_norm[iV-ref] = 1+((ee_iovs[iV]->rec_hit->GetSumEt()/ee_iovs[iV]->eflow_norm)/(ee_iovs[ref]->rec_hit->GetSumEt()/ee_iovs[ref]->eflow_norm)-1)/ee_iovs[iV]->k_ch; 
             ee_ratio->lc[iV-ref] = ee_iovs[iV]->rec_hit->GetNhits()>0 ? ee_iovs[iV]->rec_hit->GetLCSum()/ee_iovs[iV]->rec_hit->GetNhits() : 0;
         } 

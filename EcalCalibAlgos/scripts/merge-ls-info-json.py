@@ -22,7 +22,7 @@ if __name__ == "__main__":
     files = []
     print "Getting files from DAS for dataset "+options.dataset
     cmd_DAS_query = subprocess.Popen(
-        ["das_client.py --query='file dataset="+options.dataset+" instance=prod/phys03' --limit 0 | grep '/store/'"],
+        ["dasgoclient --query='file dataset="+options.dataset+" instance=prod/phys03' --limit 0 | grep '/store/'"],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     file_list_string, err_file_list = cmd_DAS_query.communicate()
     files.extend([re.sub('phisym.*lumis', 'phisym_lumi_info_json', '/eos/cms'+ifile) for ifile in file_list_string.split("\n")])
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     pu_file_str = options.pu_file
     if pu_file_str == "":
         cmd_runs = subprocess.Popen(
-            ["das_client.py --query='run dataset="+options.dataset+" instance=prod/phys03' --limit 0"],
+            ["dasgoclient --query='run dataset="+options.dataset+" instance=prod/phys03'  --limit 0"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         runs_string, err_runs = cmd_runs.communicate()
         runs_string = runs_string.replace("\n", ",")[:-1]
@@ -48,6 +48,8 @@ if __name__ == "__main__":
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         pu_string, err_pu = cmd_pu.communicate()
         pu_file_str = '/tmp/$USER/pu_list.json'
+        if options.debug:
+		print 'Pile up file is ', pu_file_str
     with open(os.path.expandvars(pu_file_str)) as pu_file:
         pu_data = json.load(pu_file)
             

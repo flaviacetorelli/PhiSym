@@ -12,6 +12,7 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "TH1F.h"
+#include "TProfile.h"
 #include "TH2F.h"
 #include "TGraphErrors.h"
 
@@ -94,7 +95,8 @@ int main(int argc, char *argv[])
         TGraphErrors* gr_uncorr_b60_EBp = new TGraphErrors();
         TGraphErrors* gr_uncorr_b60_EBm = new TGraphErrors();
         TGraphErrors* gr_sm_sub_b60_EBp = new TGraphErrors();
-        TGraphErrors* gr_sm_sub_b60_EBm = new TGraphErrors();
+	TGraphErrors* gr_sm_sub_b60_EBm = new TGraphErrors();
+
         TH1F* sm_mean_EBm = new TH1F("sb_mean_EBm", "", 360, 0.5, 360.5);
         TH1F* sm_mean_EBp = new TH1F("sb_mean_EBp", "", 360, 0.5, 360.5);
         TH1F* h_ic_uncorr = new TH1F("h_ic_uncorr", "PhiSym uncorrected ICs ;#it{IC_{uncorr}};", 100, 0.95, 1.05);
@@ -103,11 +105,18 @@ int main(int argc, char *argv[])
                                        360, 0.5, 360.5, 171, -85.5, 85.5);
         TH2F* map_ic_corr = new TH2F("map_ic_corr", "PhiSym corrected ICs map;#it{i#phi};#it{i#eta}",
                                      360, 0.5, 360.5, 171, -85.5, 85.5);
+        TH2F* map_ic_corr_b60 = new TH2F("map_ic_corr_b60", "PhiSym corrected ICs map;#it{i#phi};#it{i#eta}",
+                                     360, 0.5, 360.5, 121, -60.5, 60.5);
         TH2F* map_corrections = new TH2F("map_corrections", "Corrections map;#it{i#phi};#it{i#eta}",
                                          360, 0.5, 360.5, 171, -85.5, 85.5);
+        TH2F* map_EEp = new TH2F("map_EEp", "IC map EE+;#it{ix};#it{iy}",
+                                         101, -0.5, 100.5, 100, 0.5, 100.5);
+        TH2F* map_EEm = new TH2F("map_EEm", "IC map EE-;#it{ix};#it{iy}",
+                                         101, -0.5, 100.5, 100, 0.5, 100.5);
         
         TFile* file = TFile::Open(inputFile.c_str(), "READ");
         CrystalsEBTree ebTree((TTree*)file->Get("eb_xstals"));
+        CrystalsEETree eeTree((TTree*)file->Get("ee_xstals"));
 
         for(int iPhi=1; iPhi<=360; ++iPhi)
         {
@@ -133,6 +142,19 @@ int main(int argc, char *argv[])
                 n_hits[index] = 0;
             if(ebTree.ieta > -50 && ebTree.ieta < -44 && ebTree.iphi > 10 && ebTree.iphi < 16)
                 n_hits[index] = 0;
+        }
+
+        while(eeTree.NextEntry())
+        {
+            float ic_EE = eeTree.ic_ch;
+            int ix = eeTree.ix;
+	    int iy = eeTree.iy;
+	    int iring = eeTree.iring;
+
+	    if(iring>0)
+	      map_EEp->Fill(ix, iy, ic_EE);
+            else
+	      map_EEm->Fill(ix, iy, ic_EE);
         }
 
         //---SM averages
@@ -169,9 +191,9 @@ int main(int argc, char *argv[])
                 for(auto& ic : sm_ics[iSM][iSide])
                     if(ic > itCutResults.first-2*itCutResults.second && ic < itCutResults.first+2*itCutResults.second)
                         ++sm_n_alive[iSM][iSide];
+
                 sm_ic_mean[iSM][iSide] = itCutResults.first;
                 sm_ic_rms[iSM][iSide] = itCutResults.second;
-
                 //---no TB
                 sort(sm_ics_b60[iSM][iSide].begin(), sm_ics_b60[iSM][iSide].end());
                 itCutResults = PhiSym::IterativeCut(sm_ics_b60[iSM][iSide], 0, sm_ics_b60[iSM][iSide].size(), 0.001);
@@ -305,10 +327,44 @@ int main(int argc, char *argv[])
             h_ic_corr->Fill(ic_uncorr[index]*correction);
             map_ic_uncorr->Fill(ebMap[index].second, ebMap[index].first, ic_uncorr[index]);
             map_ic_corr->Fill(ebMap[index].second, ebMap[index].first, ic_uncorr[index]*correction);
+	    if(abs(ebMap[index].first)<60)
+	            map_ic_corr_b60->Fill(ebMap[index].second, ebMap[index].first, ic_uncorr[index]*correction);
             map_corrections->Fill(ebMap[index].second, ebMap[index].first, correction);
             outTxtFile << ebMap[index].first << "   " << ebMap[index].second << "   0   " << correction << endl;
+
         }
+
         outTxtFile.close();
+
+	TProfile* test  = map_ic_corr -> ProfileX();
+	TProfile* test2 = map_ic_corr -> ProfileX();
+	TProfile* test3 = map_ic_corr -> ProfileX();
+
+
+	for(int i=1; i<test2->GetNbinsX(); i++)
+	{
+		float ic = test2 -> GetBinContent(i);
+
+		float sm_avg = sm_ic_mean[(i-1)/20][0];
+		cout << i << " " << sm_avg << endl;
+
+		test2 -> SetBinContent(i, ic/sm_avg);
+	}
+
+	test3 -> Divide(test2);
+
+
+	test -> SetMarkerStyle(20);
+	test -> SetMarkerColor(kBlue);
+	test -> GetYaxis() -> SetRangeUser(0.95, 1.05);
+
+	test2 -> SetMarkerStyle(20);
+	test2 -> SetMarkerColor(kBlue);
+	test2 -> GetYaxis() -> SetRangeUser(0.95, 1.05);
+
+	test3 -> SetMarkerStyle(20);
+	test3 -> SetMarkerColor(kBlue);
+	test3 -> GetYaxis() -> SetRangeUser(0.95, 1.05);
 
         //---output plots
         TFile* outFile;
@@ -350,6 +406,8 @@ int main(int argc, char *argv[])
         map_ic_uncorr->SetAxisRange(0.95, 1.05, "Z");    
         map_ic_corr->SetContour(100000);
         map_ic_corr->SetAxisRange(0.95, 1.05, "Z");
+        map_ic_corr_b60->SetContour(100000);
+        map_ic_corr_b60->SetAxisRange(0.95, 1.05, "Z");
         map_corrections->SetContour(100000);
         map_corrections->SetAxisRange(0.9, 1.1, "Z");
         //---write histos
@@ -360,7 +418,10 @@ int main(int argc, char *argv[])
         gr_uncorr_b60_EBm->Write("ic_uncorr_b60_EBm");
         gr_uncorr_b60_EBp->Write("ic_uncorr_b60_EBp");
         gr_sm_sub_b60_EBm->Write("ic_sm_sub_b60_EBm");
-        gr_sm_sub_b60_EBp->Write("ic_sm_sub_b60_EBp");
+        gr_sm_sub_b60_EBp->Write("ic_sm_sub_b60_EBp");	
+	test -> Write("test");
+	test2 -> Write("test2");
+	test3 -> Write("test3");
         sm_mean_EBm->Write("sm_mean_EBm");
         sm_mean_EBp->Write("sm_mean_EBp");
         corr_syst->Write("corr_syst");
@@ -370,6 +431,9 @@ int main(int argc, char *argv[])
         h_ic_corr->Write("h_ic_corr");
         map_ic_uncorr->Write("map_ic_uncorr");
         map_ic_corr->Write("map_ic_corr");
+        map_ic_corr_b60->Write("map_ic_corr_b60");
+        map_EEp->Write("map_ic_EEp");
+        map_EEm->Write("map_ic_EEm");
         map_corrections->Write("map_corrections");
         
         file->Close();
