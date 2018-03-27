@@ -232,7 +232,7 @@ void PhiSymProducer::beginLuminosityBlock(edm::LuminosityBlock const& lumi, edm:
             //---set etCut if first lumi
             if(etCutsEB_[ring] == -1 && myId.iphi()==1)
             {
-                const CaloCellGeometry *cellGeometry = barrelGeometry->getGeometry(myId);
+                auto cellGeometry = barrelGeometry->getGeometry(myId);
                 float eta=cellGeometry->getPosition().eta();
                 etCutsEB_[ring] = eThresholdsEB_[ring]/cosh(eta) + etCutEB_;
             }
@@ -245,7 +245,7 @@ void PhiSymProducer::beginLuminosityBlock(edm::LuminosityBlock const& lumi, edm:
             //---set eCutEE if first lumi
             if(ring < ringsInOneEE && etCutsEE_[ring] == -1 && myId.ix() == 50)
             {
-                const CaloCellGeometry *cellGeometry = endcapGeometry->getGeometry(myId);
+                auto cellGeometry = endcapGeometry->getGeometry(myId);
                 etCutsEE_[ring] = eThresholdsEE_[ring]/cosh(cellGeometry->getPosition().eta()) + etCutEE_;
                 etCutsEE_[ring+ringsInOneEE] = etCutsEE_[ring];
             }
