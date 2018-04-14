@@ -155,10 +155,10 @@ void PhiSymProducer::beginJob()
         etCutsEB_[iRing] = -1;
     for(int iRing=0; iRing<ringsInOneEE; ++iRing)
     {
-        if(iRing < 30)
-            eThresholdsEE_[iRing] = thrEEmod_*(B_[0] + A_[0]*iRing)/1000;
+        if(iRing < 31)
+	  eThresholdsEE_[iRing] = thrEEmod_*(B_[0] + (A_[0]*iRing)*(A_[0]*iRing));
         else
-            eThresholdsEE_[iRing] = thrEEmod_*(B_[1] + A_[1]*iRing)/1000;
+	  eThresholdsEE_[iRing] = thrEEmod_*(B_[1] + A_[1]*iRing);
         eThresholdsEE_[iRing+ringsInOneEE] = eThresholdsEE_[iRing];
         etCutsEE_[iRing] = -1;
         etCutsEE_[iRing+ringsInOneEE] = -1;
