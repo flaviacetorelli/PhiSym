@@ -41,9 +41,10 @@
 using namespace std;
 
 //****************************************************************************************
-
+		
 class PhiSymProducer : public edm::one::EDProducer<edm::EndLuminosityBlockProducer,
-                                                 edm::one::WatchLuminosityBlocks>
+						   edm::one::WatchLuminosityBlocks,
+						   edm::Accumulator>
 {
 public:
     explicit PhiSymProducer(const edm::ParameterSet& pSet);
@@ -53,10 +54,10 @@ private:
 
     //---methods
     virtual void beginJob();
-    virtual void beginLuminosityBlock(edm::LuminosityBlock const& lumi, edm::EventSetup const& setup) override;
-    virtual void endLuminosityBlock(edm::LuminosityBlock const& lumi, edm::EventSetup const& setup) override {};
+    virtual void beginLuminosityBlock(edm::LuminosityBlock const& lumi, edm::EventSetup const& setup);
+    virtual void endLuminosityBlock(edm::LuminosityBlock const& lumi, edm::EventSetup const& setup) {};
     virtual void endLuminosityBlockProduce(edm::LuminosityBlock& lumi, edm::EventSetup const& setup) override;
-    virtual void produce(edm::Event& event, const edm::EventSetup& setup);
+    virtual void accumulate(edm::Event const& event, edm::EventSetup const& setup) override;
     virtual void endJob();
 
     //---input 
@@ -126,9 +127,9 @@ PhiSymProducer::PhiSymProducer(const edm::ParameterSet& pSet):
     makeSpectraTreeEE_(pSet.getUntrackedParameter<bool>("makeSpectraTreeEE"))
 {    
     //---register the product
-    produces<PhiSymInfoCollection, edm::InLumi>();
-    produces<PhiSymRecHitCollection, edm::InLumi>("EB");
-    produces<PhiSymRecHitCollection, edm::InLumi>("EE");
+    produces<PhiSymInfoCollection,   edm::Transition::EndLuminosityBlock>();
+    produces<PhiSymRecHitCollection, edm::Transition::EndLuminosityBlock>("EB");
+    produces<PhiSymRecHitCollection, edm::Transition::EndLuminosityBlock>("EE");
 
     //---create spectra output file
     if(makeSpectraTreeEB_)
@@ -278,15 +279,19 @@ void PhiSymProducer::endLuminosityBlockProduce(edm::LuminosityBlock& lumi, edm::
                        << lumiInfo_->back().GetTotHitsEB() << ","
                        << lumiInfo_->back().GetNEvents() 
                        << "]";
+
+
+	cout << lumiInfo_->size() << endl;
         
-        lumi.put(std::move(lumiInfo_));
+        lumi.put(std::move(lumiInfo_), "");
         lumi.put(std::move(recHitCollEB_), "EB");
         lumi.put(std::move(recHitCollEE_), "EE");
+
         nLumis_ = 0;
     }
 }
 
-void PhiSymProducer::produce(edm::Event& event, const edm::EventSetup& setup)
+void PhiSymProducer::accumulate(edm::Event const& event, edm::EventSetup const& setup)
 {
     uint64_t totHitsEB=0;
     uint64_t totHitsEE=0;

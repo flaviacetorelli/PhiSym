@@ -72,7 +72,7 @@ process.source = cms.Source("PoolSource",
 #                             ),
                             #fileNames = cms.untracked.vstring(files)
                             fileNames = cms.untracked.vstring(
-                                "/store/data/Commissioning2017/AlCaPhiSym/RAW/v1/000/293/910/00000/0018D0AC-7C37-E711-9F45-02163E019E4E.root"
+                                "/store/data/Run2018A/AlCaPhiSym/RAW/v1/000/315/259/00000/9443EE2A-9F49-E811-9B86-FA163E7121A5.root"
                             )
                         )
 
@@ -122,26 +122,26 @@ from CondCore.DBCommon.CondDBSetup_cfi import *
 process.GlobalTag = cms.ESSource("PoolDBESSource",
                                  CondDBSetup,
                                  connect = cms.string('frontier://FrontierProd/CMS_CONDITIONS'),
-                                 globaltag = cms.string('92X_dataRun2_Prompt_v9'),
+                                 globaltag = cms.string('101X_dataRun2_Prompt_v9'),
                                  # Get individual tags (template)
-                                 toGet = cms.VPSet(
-                                     cms.PSet(record = cms.string("EcalADCToGeVConstantRcd"),
-                                              tag = cms.string("EcalADCToGeVConstant_plus_2.4prct_in_EE"),
-                                              connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
-                                          ),
-                                     cms.PSet(record = cms.string("EcalIntercalibConstantsRcd"),
-                                              tag = cms.string("EcalIntercalibConstants_2017_2015_at_high_eta"),
-                                              connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
-                                          ),
-                                     cms.PSet(record = cms.string("EcalPedestalsRcd"),
-                                              tag = cms.string("EcalPedestals_Legacy2017_time_v1"),
-                                              connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
-                                          ),
-                                     cms.PSet(record = cms.string("EcalPulseShapesRcd"),
-                                              tag = cms.string("EcalPulseShapes_October2017_rereco_v1"),
-                                              connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
-                                          ),
-                                 )
+#                                 toGet = cms.VPSet(
+#                                     cms.PSet(record = cms.string("EcalADCToGeVConstantRcd"),
+#                                              tag = cms.string("EcalADCToGeVConstant_plus_2.4prct_in_EE"),
+#                                              connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
+#                                          ),
+#                                     cms.PSet(record = cms.string("EcalIntercalibConstantsRcd"),
+#                                              tag = cms.string("EcalIntercalibConstants_2017_2015_at_high_eta"),
+#                                              connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
+#                                          ),
+#                                     cms.PSet(record = cms.string("EcalPedestalsRcd"),
+#                                              tag = cms.string("EcalPedestals_Legacy2017_time_v1"),
+#                                              connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
+#                                          ),
+#                                     cms.PSet(record = cms.string("EcalPulseShapesRcd"),
+#                                              tag = cms.string("EcalPulseShapes_October2017_rereco_v1"),
+#                                              connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
+#                                          ),
+#                                 )
 )
 
 # SCHEDULE
