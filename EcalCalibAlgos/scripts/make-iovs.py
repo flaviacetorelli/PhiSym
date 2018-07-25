@@ -136,10 +136,11 @@ if __name__ == "__main__":
                         if options.saveIsolatedIntervals:
                             if options.debug:
                                 print "Save short interval"
-                            closeInterval( currentInterval )
-                            currentInterval["flag"]="I"
-                            interval[ currentInterval["unixTimeStart" ] ]=dict(currentInterval)
-                            full_interval_count+=1
+                            if float(currentInterval["nHit"])>0 :
+                                closeInterval( currentInterval )
+                                currentInterval["flag"]="I"
+                                interval[ currentInterval["unixTimeStart" ] ]=dict(currentInterval)
+                                full_interval_count+=1
                         else:
                             if options.debug:
                                 print "Dropping interval"

@@ -29,7 +29,7 @@ def lxbatchSubmitJob (eosdir, iovmap, iov, basedir, outdir, queue, dryrun):
     f.close ()
     getstatusoutput ('chmod 755 ' + jobname)
     if not dryrun:
-        getstatusoutput ('cd '+outdir+'; bsub -q ' + queue + ' ' + '-u simone.pigazzini@cern.ch ' + jobname + '; cd -')
+        getstatusoutput ('cd '+outdir+'; bsub -q ' + queue + ' ' + '-u $USER@cern.ch ' + jobname + '; cd -')
 
 # ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
 
@@ -43,15 +43,13 @@ if __name__ == '__main__':
     parser.add_argument('--dryrun' , action="store_true", default=False, help='do not submit the jobs, just create them')
     
     args = parser.parse_args ()
-
     ## expand output
     stage_out_dir = os.path.abspath(os.path.expandvars(args.outdir))
     print("Output will be copied to: "+stage_out_dir)
     getstatusoutput('mkdir -p '+stage_out_dir)
-
     ## get list of iovs.
     iovfile = ROOT.TFile.Open(args.iovmap, "READ")
-    iovtree = iovfile.Get("outTree_barl")
+    iovtree = iovfile.Get("iov_map")
     n_jobs = iovtree.GetEntries()
 
     ## create jobs
