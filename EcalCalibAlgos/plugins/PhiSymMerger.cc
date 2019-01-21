@@ -90,9 +90,11 @@ private:
     PhiSymRecHit ebXstals_[EBDetId::kSizeForDenseIndexing];
     PhiSymRecHit ebXstalsEven_[EBDetId::kSizeForDenseIndexing];
     PhiSymRecHit ebXstalsOdd_[EBDetId::kSizeForDenseIndexing];
+    int chStatusEB_[EBDetId::kSizeForDenseIndexing];
     PhiSymRecHit eeXstals_[EEDetId::kSizeForDenseIndexing];
     PhiSymRecHit eeXstalsEven_[EEDetId::kSizeForDenseIndexing];
     PhiSymRecHit eeXstalsOdd_[EEDetId::kSizeForDenseIndexing];
+    int chStatusEE_[EEDetId::kSizeForDenseIndexing];
 
     //---outputs
     auto_ptr<CalibrationFile> outFile_;
@@ -277,6 +279,8 @@ void PhiSymMerger::endLuminosityBlock(edm::LuminosityBlock const& lumi, edm::Eve
     }
 
     const map<uint32_t, short>* badChMap = infoHandle_.product()->back().GetBadChannels();
+    const map<uint32_t, short>* goodChMap = infoHandle_.product()->back().GetGoodChannels();
+
     //---EB---
     //---fill the rings Et sum
     for(auto& recHit : *recHitEBHandle_.product())
@@ -285,6 +289,7 @@ void PhiSymMerger::endLuminosityBlock(edm::LuminosityBlock const& lumi, edm::Eve
             continue;
         EBDetId ebXstal(recHit.GetRawId());
         ebXstals_[ebXstal.denseIndex()] += recHit;
+        chStatusEB_[ebXstal.denseIndex()] = (int)goodChMap->find(recHit.GetRawId())->second;
         if(thisRunLumi.lumi % 2 == 0)
             ebXstalsEven_[ebXstal.denseIndex()] += recHit;
         else
@@ -296,8 +301,10 @@ void PhiSymMerger::endLuminosityBlock(edm::LuminosityBlock const& lumi, edm::Eve
     {
         if(badChMap->find(recHit.GetRawId()) != badChMap->end())
             continue;
+
         EEDetId eeXstal(recHit.GetRawId());
         eeXstals_[eeXstal.denseIndex()] += recHit;
+        chStatusEE_[eeXstal.denseIndex()] =  (int)goodChMap->find(recHit.GetRawId())->second;
         if(thisRunLumi.lumi % 2 == 0)
             eeXstalsEven_[eeXstal.denseIndex()] += recHit;
         else
@@ -347,16 +354,19 @@ void PhiSymMerger::FillOutput()
         outFile_->eb_xstals.rec_hit = &ebXstals_[index];
         outFile_->eb_xstals.ieta = ebXstal.ieta();
         outFile_->eb_xstals.iphi = ebXstal.iphi();
+        outFile_->eb_xstals.ch_status = chStatusEB_[ebXstal.denseIndex()];
         outFile_->eb_xstals.Fill();
         //---even lumis (or block of lumis)
         outFile_->eb_xstals_even.rec_hit = &ebXstalsEven_[index];
         outFile_->eb_xstals_even.ieta = ebXstal.ieta();
         outFile_->eb_xstals_even.iphi = ebXstal.iphi();
+        outFile_->eb_xstals_even.ch_status = chStatusEB_[ebXstal.denseIndex()];
         outFile_->eb_xstals_even.Fill();
         //---odd lumis (or block of lumis)
         outFile_->eb_xstals_odd.rec_hit = &ebXstalsOdd_[index];
         outFile_->eb_xstals_odd.ieta = ebXstal.ieta();
         outFile_->eb_xstals_odd.iphi = ebXstal.iphi();
+        outFile_->eb_xstals_odd.ch_status = chStatusEB_[ebXstal.denseIndex()];
         outFile_->eb_xstals_odd.Fill();
         
         //---reset channel status and sum
@@ -375,18 +385,21 @@ void PhiSymMerger::FillOutput()
         outFile_->ee_xstals.iring = currentRing<kNRingsEE/2 ? currentRing-kNRingsEE/2 : currentRing-kNRingsEE/2 + 1;
         outFile_->ee_xstals.ix = eeXstal.ix();
         outFile_->ee_xstals.iy = eeXstal.iy();
+        outFile_->ee_xstals.ch_status = chStatusEE_[eeXstal.denseIndex()];
         outFile_->ee_xstals.Fill();            
         //---even lumis (or block of lumis)
         outFile_->ee_xstals_even.rec_hit = &eeXstalsEven_[index];
         outFile_->ee_xstals_even.iring = outFile_->ee_xstals.iring;
         outFile_->ee_xstals_even.ix = eeXstal.ix();
         outFile_->ee_xstals_even.iy = eeXstal.iy();
+        outFile_->ee_xstals_even.ch_status = chStatusEE_[eeXstal.denseIndex()];
         outFile_->ee_xstals_even.Fill();
         //---odd lumis (or block of lumis)
         outFile_->ee_xstals_odd.rec_hit = &eeXstalsOdd_[index];
         outFile_->ee_xstals_odd.iring = outFile_->ee_xstals.iring;
         outFile_->ee_xstals_odd.ix = eeXstal.ix();
         outFile_->ee_xstals_odd.iy = eeXstal.iy();
+        outFile_->ee_xstals_odd.ch_status = chStatusEE_[eeXstal.denseIndex()];
         outFile_->ee_xstals_odd.Fill();
 
         //---reset channel status and sum

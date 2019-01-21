@@ -331,7 +331,8 @@ void PhiSymProducer::produce(edm::Event& event, const edm::EventSetup& setup)
         //---check channel status
         if((*chStatus_)[ebHit].getStatusCode() > statusThreshold_)
             lumiInfo_->back().SetBadChannel(recHit.id(), (*chStatus_)[ebHit].getStatusCode());
-
+	else
+            lumiInfo_->back().SetGoodChannel(recHit.id(), (*chStatus_)[ebHit].getStatusCode());
         //---compute et + miscalibration
         float etValues[11];
         //---one can do this in one for loop from -nMis to +nMis but in this way the
@@ -388,7 +389,8 @@ void PhiSymProducer::produce(edm::Event& event, const edm::EventSetup& setup)
         float eta=endcapGeometry->getGeometry(eeHit)->getPosition().eta();
         if((*chStatus_)[eeHit].getStatusCode() > statusThreshold_)
             lumiInfo_->back().SetBadChannel(recHit.id(), (*chStatus_)[eeHit].getStatusCode());
-
+	else
+            lumiInfo_->back().SetGoodChannel(recHit.id(), (*chStatus_)[eeHit].getStatusCode());
         //---compute et + miscalibration
         float etValues[11];
         //---one can do this in one for loop from -nMis to +nMis but in this way the

@@ -43,6 +43,7 @@ public:
 
     //---setters---
     inline void     SetBadChannel(uint32_t id, short status) {badChannels_[id] = status;};
+    inline void     SetGoodChannel(uint32_t id, short status) {goodChannels_[id] = status;};
     void            SetStartLumi(edm::LuminosityBlock const& lumi);
     void            SetEndLumi(edm::LuminosityBlock const& lumi);
 
@@ -57,6 +58,7 @@ public:
     inline edm::LuminosityBlockID getStartLumi() const {return startLumi_;};
     inline edm::LuminosityBlockID getEndLumi() const {return endLumi_;};
     inline const std::map<uint32_t, short>* GetBadChannels() const {return &badChannels_;}
+    inline const std::map<uint32_t, short>* GetGoodChannels() const {return &goodChannels_;}
 
     //---utils---
     void            Update(const reco::BeamSpot* bs, uint64_t& nEB, uint64_t& nEE);
@@ -68,6 +70,7 @@ private:
     edm::LuminosityBlockID startLumi_;
     edm::LuminosityBlockID endLumi_;
     std::map<uint32_t, short>  badChannels_;
+    std::map<uint32_t, short>  goodChannels_;
     
     uint64_t totHitsEB_;
     uint64_t totHitsEE_;

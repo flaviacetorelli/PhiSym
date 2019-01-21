@@ -40,6 +40,8 @@ def resetInterval(interval, index):
     interval["lastLumi"] = 0
     interval["unixTimeEnd"] = 0
     interval["norm"] = 0
+    interval["firstFill"] = 0
+    interval["lastFill"] = 0
     interval["nHit"] = 0
     interval["nLS"] =0
     interval["unixTimeMean"] = 0
@@ -48,9 +50,10 @@ def resetInterval(interval, index):
 def closeInterval(interval):
     interval["unixTimeMean"]=interval["unixTimeStart"]+float(interval["unixTimeMean"])/float(interval["nHit"])
 
-def startInterval(interval, run, lumi, start):
+def startInterval(interval, run, lumi, fill, start):
     interval["firstRun"] = run
     interval["firstLumi"] = lumi
+    interval["firstFill"] = fill
     interval["unixTimeStart"] = start
 
 if __name__ == "__main__":
@@ -62,6 +65,7 @@ if __name__ == "__main__":
     parser.add_option("-o", "--output", dest="output", type="string", default="readMap.root")
     parser.add_option("-t","--max-time", dest="maxTime", type = "int", default=86400)
     parser.add_option("-l","--lumi-file", dest="lumiFile", type = "string", default="")
+    parser.add_option("-f","--fill-splitting", dest="splitByFill", action='store_true')
     (options, args) = parser.parse_args()
 
     timeMap = {}
@@ -73,7 +77,8 @@ if __name__ == "__main__":
                 "run"       : info[0],
                 "lumi"      : info[1],
                 "totHitsEB" : info[2],
-                "norm"      : info[3]
+                "norm"      : info[3],
+                "fill"      : info[4]
                 }
 
     ###--- Certification json
@@ -96,45 +101,64 @@ if __name__ == "__main__":
     
     # splitting logic
     print("### Start splitting logic")
-    for key in sorted(timeMap):
-        if options.lumiFile != "" and (timeMap[key]["run"] not in goodLumisMap.keys() or timeMap[key]["lumi"] not in goodLumisMap[timeMap[key]["run"]].keys()):
-            print "Skipping lumi: %d:%d not in %s" % (timeMap[key]["run"], timeMap[key]["lumi"], options.lumiFile)
-            continue
-        
-        if currentInterval["nLS"]==0 and currentInterval["unixTimeStart"]==0:
-           #start a new interval
-            startInterval( currentInterval, timeMap[key]["run"], timeMap[key]["lumi"], key)
 
-        if key-currentInterval["unixTimeStart"]>=maxStopTime and currentInterval["unixTimeStart"] != 0:
+    if (options.splitByFill) :
+        print 'Splitting by fill number'
+        for key in sorted(timeMap):
+            if options.lumiFile != "" and (timeMap[key]["run"] not in goodLumisMap.keys() or timeMap[key]["lumi"] not in goodLumisMap[timeMap[key]["run"]].keys()):
+                print "Skipping lumi: %d:%d not in %s" % (timeMap[key]["run"], timeMap[key]["lumi"], options.lumiFile)
+                continue
 
-            if currentInterval["nHit"] >= nMaxHits/2.:
-                # Enough statistics. Closing previous interval 
-                if options.debug:
-                    print "Closing interval by time condition"
+            if currentInterval["nLS"]==0 and currentInterval["unixTimeStart"]==0:
+                #start a new interval
+                startInterval( currentInterval, timeMap[key]["run"], timeMap[key]["lumi"], timeMap[key]["fill"], key)
+ 
+            #check if the fill number is different
+            if(currentInterval["firstFill"]!=timeMap[key]["fill"]) :
 
-                closeInterval( currentInterval )
-                currentInterval["flag"]="S"
-                interval[ currentInterval["unixTimeStart" ] ]=dict(currentInterval)
-                full_interval_count+=1
+                if currentInterval["nHit"] >= nMaxHits/2.:
+                    # Enough statistics. Closing previous interval 
+                    if options.debug:
+                        print "Closing interval by time condition"
 
-            else:
-                lastInterval=-1
-                if len(interval.keys())>0:
-                    lastInterval=sorted(interval.keys())[-1]
-                if lastInterval>0:
-                    if (currentInterval["unixTimeEnd"]-interval[lastInterval]["unixTimeStart"]<=maxStopTime):
-                    #merging with last interval
-                        if options.debug:
-                            print "Merging interval"
-                        closeInterval( currentInterval )
-                        interval[lastInterval]["lastRun"]=currentInterval["lastRun"]
-                        interval[lastInterval]["lastLumi"]=currentInterval["lastLumi"]
-                        interval[lastInterval]["unixTimeEnd"]=currentInterval["unixTimeEnd"]
-                        interval[lastInterval]["unixTimeMean"]=(interval[lastInterval]["unixTimeMean"]*interval[lastInterval]["nHit"]+currentInterval["unixTimeMean"]*currentInterval["nHit"])/(float(interval[lastInterval]["nHit"]+currentInterval["nHit"]))
-                        interval[lastInterval]["nHit"]+=currentInterval["nHit"]
-                        interval[lastInterval]["norm"]+=currentInterval["norm"]
-                        interval[lastInterval]["flag"]="M"
+                    closeInterval( currentInterval )
+                    currentInterval["flag"]="S"
+                    interval[ currentInterval["unixTimeStart" ] ]=dict(currentInterval)
+                    full_interval_count+=1
+
+                else:
+                    lastInterval=-1
+                    if len(interval.keys())>0:
+                        lastInterval=sorted(interval.keys())[-1]
+                    if lastInterval>0:
+                        if (currentInterval["unixTimeEnd"]-interval[lastInterval]["unixTimeStart"]<=maxStopTime):
+                        #merging with last interval
+                            if options.debug:
+                                print "Merging interval"
+                            closeInterval( currentInterval )
+                            interval[lastInterval]["lastRun"]=currentInterval["lastRun"]
+                            interval[lastInterval]["lastLumi"]=currentInterval["lastLumi"]
+                            interval[lastInterval]["unixTimeEnd"]=currentInterval["unixTimeEnd"]
+                            interval[lastInterval]["unixTimeMean"]=(interval[lastInterval]["unixTimeMean"]*interval[lastInterval]["nHit"]+currentInterval["unixTimeMean"]*currentInterval["nHit"])/(float(interval[lastInterval]["nHit"]+currentInterval["nHit"]))
+                            interval[lastInterval]["nHit"]+=currentInterval["nHit"]
+                            interval[lastInterval]["norm"]+=currentInterval["norm"]
+                            interval[lastInterval]["flag"]="M"
+                        else:
+                            if options.saveIsolatedIntervals:
+                                if options.debug:
+                                    print "Save short interval"
+                                closeInterval( currentInterval )
+                                currentInterval["flag"]="I"
+                                interval[ currentInterval["unixTimeStart" ] ]=dict(currentInterval)
+                                full_interval_count+=1
+                            else:
+                                if options.debug:
+                                    print "Dropping interval"
+                                #dropping interval
+                                isolated_interval_count+=1
                     else:
+                        if options.debug:
+                            print "First interval is a short one!"
                         if options.saveIsolatedIntervals:
                             if options.debug:
                                 print "Save short interval"
@@ -147,42 +171,109 @@ if __name__ == "__main__":
                                 print "Dropping interval"
                             #dropping interval
                             isolated_interval_count+=1
-                else:
+
+                # Start a new interval
+                resetInterval( currentInterval, full_interval_count )
+                startInterval( currentInterval, timeMap[key]["run"], timeMap[key]["lumi"], timeMap[key]["fill"], key)
+
+            currentInterval["lastRun"] = timeMap[key]["run"]
+            currentInterval["lastLumi"] = timeMap[key]["lumi"]
+            currentInterval["lastFill"] = timeMap[key]["fill"]
+            currentInterval["unixTimeEnd"] = key+23.1
+            currentInterval["nHit"] += timeMap[key]["totHitsEB"]
+            currentInterval["norm"] += timeMap[key]["norm"]
+            currentInterval["nLS"] +=1
+            currentInterval["unixTimeMean"] += float((key-currentInterval["unixTimeStart"]+11.55)*timeMap[key]["totHitsEB"])
+
+    else :
+        for key in sorted(timeMap):
+            if options.lumiFile != "" and (timeMap[key]["run"] not in goodLumisMap.keys() or timeMap[key]["lumi"] not in goodLumisMap[timeMap[key]["run"]].keys()):
+                print "Skipping lumi: %d:%d not in %s" % (timeMap[key]["run"], timeMap[key]["lumi"], options.lumiFile)
+                continue
+            
+            if currentInterval["nLS"]==0 and currentInterval["unixTimeStart"]==0:
+                #start a new interval
+                startInterval( currentInterval, timeMap[key]["run"], timeMap[key]["lumi"], timeMap[key]["fill"], key)
+
+            if key-currentInterval["unixTimeStart"]>=maxStopTime and currentInterval["unixTimeStart"] != 0:
+
+                if currentInterval["nHit"] >= nMaxHits/2.:
+                    # Enough statistics. Closing previous interval 
                     if options.debug:
-                        print "First interval is a short one!"
-                    if options.saveIsolatedIntervals:
-                        if options.debug:
-                            print "Save short interval"
-                        closeInterval( currentInterval )
-                        currentInterval["flag"]="I"
-                        interval[ currentInterval["unixTimeStart" ] ]=dict(currentInterval)
-                        full_interval_count+=1
+                        print "Closing interval by time condition"
+
+                    closeInterval( currentInterval )
+                    currentInterval["flag"]="S"
+                    interval[ currentInterval["unixTimeStart" ] ]=dict(currentInterval)
+                    full_interval_count+=1
+
+                else:
+                    lastInterval=-1
+                    if len(interval.keys())>0:
+                        lastInterval=sorted(interval.keys())[-1]
+                    if lastInterval>0:
+                        if (currentInterval["unixTimeEnd"]-interval[lastInterval]["unixTimeStart"]<=maxStopTime):
+                        #merging with last interval
+                            if options.debug:
+                                print "Merging interval"
+                            closeInterval( currentInterval )
+                            interval[lastInterval]["lastRun"]=currentInterval["lastRun"]
+                            interval[lastInterval]["lastLumi"]=currentInterval["lastLumi"]
+                            interval[lastInterval]["unixTimeEnd"]=currentInterval["unixTimeEnd"]
+                            interval[lastInterval]["unixTimeMean"]=(interval[lastInterval]["unixTimeMean"]*interval[lastInterval]["nHit"]+currentInterval["unixTimeMean"]*currentInterval["nHit"])/(float(interval[lastInterval]["nHit"]+currentInterval["nHit"]))
+                            interval[lastInterval]["nHit"]+=currentInterval["nHit"]
+                            interval[lastInterval]["norm"]+=currentInterval["norm"]
+                            interval[lastInterval]["flag"]="M"
+                        else:
+                            if options.saveIsolatedIntervals:
+                                if options.debug:
+                                    print "Save short interval"
+                                closeInterval( currentInterval )
+                                currentInterval["flag"]="I"
+                                interval[ currentInterval["unixTimeStart" ] ]=dict(currentInterval)
+                                full_interval_count+=1
+                            else:
+                                if options.debug:
+                                    print "Dropping interval"
+                                #dropping interval
+                                isolated_interval_count+=1
                     else:
                         if options.debug:
-                            print "Dropping interval"
-                        #dropping interval
-                        isolated_interval_count+=1
+                            print "First interval is a short one!"
+                        if options.saveIsolatedIntervals:
+                            if options.debug:
+                                print "Save short interval"
+                            closeInterval( currentInterval )
+                            currentInterval["flag"]="I"
+                            interval[ currentInterval["unixTimeStart" ] ]=dict(currentInterval)
+                            full_interval_count+=1
+                        else:
+                            if options.debug:
+                                print "Dropping interval"
+                            #dropping interval
+                            isolated_interval_count+=1
 
-            # Start a new interval
-            resetInterval( currentInterval, full_interval_count )
-            startInterval( currentInterval, timeMap[key]["run"], timeMap[key]["lumi"], key)
+                # Start a new interval
+                resetInterval( currentInterval, full_interval_count )
+                startInterval( currentInterval, timeMap[key]["run"], timeMap[key]["lumi"], timeMap[key]["fill"], key)
 
-        currentInterval["lastRun"] = timeMap[key]["run"]
-        currentInterval["lastLumi"] = timeMap[key]["lumi"]
-        currentInterval["unixTimeEnd"] = key+23.1
-        currentInterval["nHit"] += timeMap[key]["totHitsEB"]
-        currentInterval["norm"] += timeMap[key]["norm"]
-        currentInterval["nLS"] +=1
-        currentInterval["unixTimeMean"] += float((key-currentInterval["unixTimeStart"]+11.55)*timeMap[key]["totHitsEB"])
+            currentInterval["lastRun"] = timeMap[key]["run"]
+            currentInterval["lastLumi"] = timeMap[key]["lumi"]
+            currentInterval["lastFill"] = timeMap[key]["fill"]
+            currentInterval["unixTimeEnd"] = key+23.1
+            currentInterval["nHit"] += timeMap[key]["totHitsEB"]
+            currentInterval["norm"] += timeMap[key]["norm"]
+            currentInterval["nLS"] +=1
+            currentInterval["unixTimeMean"] += float((key-currentInterval["unixTimeStart"]+11.55)*timeMap[key]["totHitsEB"])
 
-        if currentInterval["nHit"] >= nMaxHits:
-            # adding as new interval
-            closeInterval( currentInterval )
-            currentInterval["flag"]="F"
-            interval[ currentInterval["unixTimeStart"] ]=dict(currentInterval)
-            full_interval_count+=1
-            # resetting for next interval
-            resetInterval( currentInterval, full_interval_count )
+            if currentInterval["nHit"] >= nMaxHits:
+                # adding as new interval
+                closeInterval( currentInterval )
+                currentInterval["flag"]="F"
+                interval[ currentInterval["unixTimeStart"] ]=dict(currentInterval)
+                full_interval_count+=1
+                # resetting for next interval
+                resetInterval( currentInterval, full_interval_count )
 
     interval_number=n.zeros(1,dtype=int)
     hit=n.zeros(1,dtype=long)
@@ -193,6 +284,8 @@ if __name__ == "__main__":
     lastRunBranch=n.zeros(1,dtype=int)
     firstLumiBranch=n.zeros(1,dtype=int)
     lastLumiBranch=n.zeros(1,dtype=int)
+    firstFillBranch=n.zeros(1,dtype=int)
+    lastFillBranch=n.zeros(1,dtype=int)
     unixTimeStartBranch=n.zeros(1,dtype=float)
     unixTimeEndBranch=n.zeros(1,dtype=float)
     unixTimeMeanBranch=n.zeros(1,dtype=float)
@@ -211,6 +304,8 @@ if __name__ == "__main__":
     tree.Branch('lastRun', lastRunBranch, 'lastRun/I')
     tree.Branch('firstLumi', firstLumiBranch, 'firstLumi/I')
     tree.Branch('lastLumi', lastLumiBranch, 'lastLumi/I')
+    tree.Branch('firstFill', firstFillBranch, 'firstFill/I')
+    tree.Branch('lastFill', lastFillBranch, 'lastFill/I')
     tree.Branch('unixTimeStart', unixTimeStartBranch, 'unixTimeStart/D')
     tree.Branch('unixTimeEnd', unixTimeEndBranch, 'unixTimeEnd/D')
     tree.Branch('unixTimeMean', unixTimeMeanBranch, 'unixTimeMean/D')
@@ -225,6 +320,8 @@ if __name__ == "__main__":
         lastRunBranch[0]=interval[key]["lastRun"]
         firstLumiBranch[0]=interval[key]["firstLumi"]
         lastLumiBranch[0]=interval[key]["lastLumi"]
+        firstFillBranch[0]=interval[key]["firstFill"]
+        lastFillBranch[0]=interval[key]["lastFill"]
         unixTimeStartBranch[0]=interval[key]["unixTimeStart"]
         unixTimeEndBranch[0]=interval[key]["unixTimeEnd"]
         unixTimeMeanBranch[0]=interval[key]["unixTimeMean"]

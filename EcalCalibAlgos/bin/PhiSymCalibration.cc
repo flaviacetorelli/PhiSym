@@ -57,12 +57,16 @@ float eeAbsICs_[EEDetId::IX_MAX+1][EEDetId::IY_MAX+1][2];
 //---ring based
 //---EB
 double ebRingsSumEt_[kNRingsEB][11];
+double ebRingsSumEtUncut_[kNRingsEB];
+double nRemovedCrystalsEB_[kNRingsEB];
 double ebRingsSumEtEven_[kNRingsEB]={0};
 double ebRingsSumEtOdd_[kNRingsEB]={0};
 double ebRingsSumEt2_[kNRingsEB]={0};
 float  ebSumEtCuts_[kNRingsEB][2];
 //---EE
 double eeRingsSumEt_[kNRingsEE][11];
+double eeRingsSumEtUncut_[kNRingsEE];
+double nRemovedCrystalsEE_[kNRingsEE];
 double eeRingsSumEtEven_[kNRingsEE]={0};
 double eeRingsSumEtOdd_[kNRingsEE]={0};
 double eeRingsSumEt2_[kNRingsEE]={0};
@@ -73,6 +77,7 @@ map<int, int> ebRingsMap_;
 PhiSymRecHit ebXstals_[EBDetId::kSizeForDenseIndexing];
 PhiSymRecHit ebXstalsEven_[EBDetId::kSizeForDenseIndexing];
 PhiSymRecHit ebXstalsOdd_[EBDetId::kSizeForDenseIndexing];
+int chStatusEB_[EBDetId::kSizeForDenseIndexing];
 bool   goodXstalsEB_[kNRingsEB][361][11];
 float  nGoodInRingEB_[kNRingsEB][11];
 double kFactorsChEB_[EBDetId::kSizeForDenseIndexing];
@@ -87,6 +92,7 @@ map<int, int> eeRingsMap_;
 PhiSymRecHit eeXstals_[EEDetId::kSizeForDenseIndexing];
 PhiSymRecHit eeXstalsEven_[EEDetId::kSizeForDenseIndexing];
 PhiSymRecHit eeXstalsOdd_[EEDetId::kSizeForDenseIndexing];
+int chStatusEE_[EEDetId::kSizeForDenseIndexing];
 bool   goodXstalsEE_[kNRingsEE][EEDetId::IX_MAX+1][EEDetId::IY_MAX+1][11];
 float  nGoodInRingEE_[kNRingsEE][11];
 double kFactorsChEE_[EEDetId::kSizeForDenseIndexing]={0};
@@ -100,7 +106,8 @@ float  icAbsChMeanEE_[kNRingsEE];
 bool kFactorsComputed_;
 
 //---outputs
-unique_ptr<CalibrationFile> outFile_;
+unique_ptr<
+CalibrationFile> outFile_;
 
 //**********FUNCTIONS*********************************************************************
 //----------compute the ring-dependent k-factors for both EB and EE-----------------------
@@ -197,9 +204,10 @@ void ComputeICs()
                     ebRingsSumEt2_[iRing] = ebRingsSumEt2_[iRing] / nGoodInRingEB_[iRing][iMis];
                     ebRingsSumEtEven_[iRing] = ebRingsSumEtEven_[iRing] / nGoodInRingEB_[iRing][iMis];
                     ebRingsSumEtOdd_[iRing] = ebRingsSumEtOdd_[iRing] / nGoodInRingEB_[iRing][iMis];
+                    ebRingsSumEt_[iRing][iMis] = ebRingsSumEt_[iRing][iMis] / nGoodInRingEB_[iRing][iMis];
+                    ebRingsSumEtUncut_[iRing] = ebRingsSumEtUncut_[iRing] / (nGoodInRingEB_[iRing][iMis] + nRemovedCrystalsEB_[iRing]);
                 }
-                ebRingsSumEt_[iRing][iMis] = ebRingsSumEt_[iRing][iMis] / nGoodInRingEB_[iRing][iMis];
-            }
+             }
         }
     }
     //---compute EE rings averages
@@ -217,9 +225,10 @@ void ComputeICs()
                     eeRingsSumEt2_[iRing] = eeRingsSumEt2_[iRing] / nGoodInRingEE_[iRing][iMis];
                     eeRingsSumEtEven_[iRing] = eeRingsSumEtEven_[iRing] / nGoodInRingEE_[iRing][iMis];
                     eeRingsSumEtOdd_[iRing] = eeRingsSumEtOdd_[iRing] / nGoodInRingEE_[iRing][iMis];
+                    eeRingsSumEt_[iRing][iMis] = eeRingsSumEt_[iRing][iMis] / nGoodInRingEE_[iRing][iMis];
+                    eeRingsSumEtUncut_[iRing] = eeRingsSumEtUncut_[iRing] / (nGoodInRingEE_[iRing][iMis] + nRemovedCrystalsEE_[iRing]);
                 }
-                eeRingsSumEt_[iRing][iMis] = eeRingsSumEt_[iRing][iMis] / nGoodInRingEE_[iRing][iMis];
-            }
+             }
         }
     }
     ComputeKfactors();
@@ -290,6 +299,8 @@ void ComputeICs()
             outFile_->eb_xstals.iphi = ebXstal.iphi();
             outFile_->eb_xstals.k_ch = GetChannelKfactor(index, 0).first;
             outFile_->eb_xstals.k_ch_err = GetChannelKfactor(index, 0).second;
+            outFile_->eb_xstals.ring_average = ebRingsSumEt_[currentRing][0];
+            outFile_->eb_xstals.ring_average_uncleaned = ebRingsSumEtUncut_[currentRing];
             outFile_->eb_xstals.ic_ch = icChEB[index]/icChMeanEB_[currentRing];
             outFile_->eb_xstals.ic_old = ebOldICs_[currentRing][ebXstal.iphi()];
             outFile_->eb_xstals.ic_abs = ebAbsICs_[currentRing][ebXstal.iphi()]/icAbsChMeanEB_[currentRing];
@@ -349,7 +360,7 @@ void ComputeICs()
             icAbsChMeanEE_[iRing] = icAbsChMeanEE_[iRing]/nGoodInRingEE_[iRing][0];
     }
 
-    //---Fill EB tree
+    //---Fill EE tree
     for(uint32_t index=0; index<EEDetId::kSizeForDenseIndexing; ++index)
     {
         EEDetId eeXstal = EEDetId::detIdFromDenseIndex(index);
@@ -371,7 +382,9 @@ void ComputeICs()
             outFile_->ee_xstals.iy = eeXstal.iy();
             outFile_->ee_xstals.k_ch = GetChannelKfactor(index, 1).first;
             outFile_->ee_xstals.k_ch_err = GetChannelKfactor(index, 1).second;
-            outFile_->ee_xstals.ic_ch = icChEB[index]/icChMeanEB_[currentRing];
+            outFile_->ee_xstals.ring_average = eeRingsSumEt_[currentRing][0];
+            outFile_->ee_xstals.ring_average_uncleaned = eeRingsSumEtUncut_[currentRing];
+            outFile_->ee_xstals.ic_ch = icChEE[index]/icChMeanEE_[currentRing];
             outFile_->ee_xstals.ic_old = eeOldICs_[eeXstal.ix()][eeXstal.iy()][eeXstal.zside()<0 ? 0 : 1];
             outFile_->ee_xstals.ic_abs = eeAbsICs_[eeXstal.ix()][eeXstal.iy()][eeXstal.zside()<0 ? 0 : 1]
                 /icAbsChMeanEE_[currentRing];            
@@ -617,6 +630,8 @@ int main( int argc, char *argv[] )
             icChEvenMeanEB_[iRing] = 0;
             icChOddMeanEB_[iRing] = 0;
             icAbsChMeanEB_[iRing] = !normalizeAbsIC;
+            ebRingsSumEtUncut_[iRing] = 0;
+	    nRemovedCrystalsEB_[iRing] = 0;
             for(int iMis=0; iMis<=nMisCalib_; ++iMis)
             {
                 ebRingsSumEt_[iRing][iMis] = 0;
@@ -631,6 +646,7 @@ int main( int argc, char *argv[] )
             ebXstalsEven_[index] = PhiSymRecHit();
             ebXstalsOdd_[index] = PhiSymRecHit();
             ebRingsMap_[index] = -1;
+            chStatusEB_[index] = -1;
         }
         //---EE
         for(int iRing=0; iRing<kNRingsEE; ++iRing)
@@ -642,6 +658,8 @@ int main( int argc, char *argv[] )
             icChEvenMeanEE_[iRing] = 0;
             icChOddMeanEE_[iRing] = 0;
             icAbsChMeanEE_[iRing] = !normalizeAbsIC;
+            eeRingsSumEtUncut_[iRing] = 0;
+	    nRemovedCrystalsEE_[iRing] = 0;
             for(int iMis=0; iMis<=nMisCalib_; ++iMis)
             {
                 eeRingsSumEt_[iRing][iMis] = 0;
@@ -657,6 +675,7 @@ int main( int argc, char *argv[] )
             eeXstalsEven_[index] = PhiSymRecHit();
             eeXstalsOdd_[index] = PhiSymRecHit();
             eeRingsMap_[index] = -1;
+            chStatusEE_[index] = -1;
         }
 
         nMisCalib_ = -1;
@@ -763,12 +782,13 @@ int main( int argc, char *argv[] )
                     thisBlkSumMeanZ_ += ebTree.mean_bs_z*ebTree.n_events;
                     thisBlkSumSigmaZ_ += ebTree.mean_bs_sigmaz*ebTree.n_events;
                 }
-            
+
                 int index = EBDetId(ebTree.ieta, ebTree.iphi).denseIndex();
                 int currentRing = ebTree.ieta<0 ? ebTree.ieta + 85 : ebTree.ieta + 84;
                 ebXstals_[index] += *ebTree.rec_hit;
                 ebXstalsEven_[index] += *ebTreeEven.rec_hit;
                 ebXstalsOdd_[index] += *ebTreeOdd.rec_hit;
+		chStatusEB_[index] = ebTree.ch_status;
                 //---no geometry available, thus fill a hashedIndex->ring map
                 if(ebRingsMap_[index] == -1)
                     ebRingsMap_[index] = currentRing;
@@ -801,6 +821,7 @@ int main( int argc, char *argv[] )
                 eeXstals_[index] += *eeTree.rec_hit;
                 eeXstalsEven_[index] += *eeTreeEven.rec_hit;
                 eeXstalsOdd_[index] += *eeTreeOdd.rec_hit;
+		chStatusEE_[index] = eeTree.ch_status;
                 //---no geometry available, thus fill a hashedIndex->ring map
                 if(eeRingsMap_[index] == -1)
                     eeRingsMap_[index] = currentRing;
@@ -820,6 +841,13 @@ int main( int argc, char *argv[] )
             }
             file->Close();
         }
+
+	for(int iRing=0; iRing<kNRingsEB; ++iRing)
+		ebRingsSumEtUncut_[iRing] = ebRingsSumEt_[iRing][0];
+
+	for(int iRing=0; iRing<kNRingsEE; ++iRing)
+		eeRingsSumEtUncut_[iRing] = eeRingsSumEt_[iRing][0];
+
         //---compute sumEt cuts by ring
         //---EB
         for(int index=0; index<EBDetId::kSizeForDenseIndexing; ++index)
@@ -829,7 +857,7 @@ int main( int argc, char *argv[] )
             if(currentRing > -1 && goodXstalsEB_[currentRing][ebXstal.iphi()][0])
                 ebRingsSumEts[currentRing].push_back(ebXstals_[index].GetSumEt());
         }
-        for(int iRing=0; iRing<kNRingsEB; ++iRing)
+        for(int iRing=0; iRing<kNRingsEB; ++iRing) //QUI!!!
         {
             sort(ebRingsSumEts[iRing].begin(), ebRingsSumEts[iRing].end());
             float mean=-1;
@@ -880,16 +908,18 @@ int main( int argc, char *argv[] )
             eeSumEtCuts_[iRing][1] = mean+2*rms;
         }
 
+	
         //---remove bad crystals from the ring sums
         //---NOTE: crystal are added by default and the goodXstal flag is set to 1
         //---      so now we need to set it to 0 and subtract the channel from the sums
         //---EB
-        for(int index=0; index<EBDetId::kSizeForDenseIndexing; ++index)
+        for(int index=0; index<EBDetId::kSizeForDenseIndexing; ++index) //E ANCHE QUI!!!
         {
             int currentRing = ebRingsMap_[index];
             if(currentRing > -1 &&
-               (ebXstals_[index].GetSumEt() < ebSumEtCuts_[currentRing][0] ||
-                ebXstals_[index].GetSumEt() > ebSumEtCuts_[currentRing][1]))
+               ((ebXstals_[index].GetSumEt() < ebSumEtCuts_[currentRing][0] ||
+                ebXstals_[index].GetSumEt() > ebSumEtCuts_[currentRing][1]) || chStatusEB_[index]!=0))
+
             {
                 EBDetId ebXstal = EBDetId::detIdFromDenseIndex(index);
                 ebRingsSumEt2_[currentRing] -= ebXstals_[index].GetSumEt2();
@@ -901,17 +931,20 @@ int main( int argc, char *argv[] )
                     {
                         ebRingsSumEt_[currentRing][iMis] -= ebXstals_[index].GetSumEt(iMis);
                         goodXstalsEB_[currentRing][ebXstal.iphi()][iMis]=0;
+			if(iMis==0)
+			  nRemovedCrystalsEB_[currentRing]++;
                     }
                 }
             }
         }
+
         //---EE
         for(int index=0; index<EEDetId::kSizeForDenseIndexing; ++index)
         {
             int currentRing = eeRingsMap_[index];
             if(currentRing > -1 &&
-               (eeXstals_[index].GetSumEt() < eeSumEtCuts_[currentRing][0] ||
-                eeXstals_[index].GetSumEt() > eeSumEtCuts_[currentRing][1]))
+               ((eeXstals_[index].GetSumEt() < eeSumEtCuts_[currentRing][0] ||
+                eeXstals_[index].GetSumEt() > eeSumEtCuts_[currentRing][1]) || chStatusEE_[index]!=0))
             {
                 EEDetId eeXstal = EEDetId::detIdFromDenseIndex(index);
                 eeRingsSumEt2_[currentRing] -= eeXstals_[index].GetSumEt2();
@@ -923,7 +956,9 @@ int main( int argc, char *argv[] )
                     {
                         eeRingsSumEt_[currentRing][iMis] -= eeXstals_[index].GetSumEt(iMis);
                         goodXstalsEE_[currentRing][eeXstal.ix()][eeXstal.iy()][iMis]=0;
-                    }
+			if(iMis==0)
+			  nRemovedCrystalsEE_[currentRing]++;                    
+		    }
                 }
             }
         }

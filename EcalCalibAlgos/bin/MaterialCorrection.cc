@@ -113,7 +113,14 @@ int main(int argc, char *argv[])
                                          101, -0.5, 100.5, 100, 0.5, 100.5);
         TH2F* map_EEm = new TH2F("map_EEm", "IC map EE-;#it{ix};#it{iy}",
                                          101, -0.5, 100.5, 100, 0.5, 100.5);
-        
+        TH2F* map_lc_EB = new TH2F("map_lc_EB", "LC map EB;#it{i#phi};#it{i#eta}",
+                                         360, 0.5, 360.5, 171, -85.5, 85.5);
+        TH2F* map_lc_EEp = new TH2F("map_lc_EEp", "LC map EE+;#it{ix};#it{iy}",
+                                         101, -0.5, 100.5, 100, 0.5, 100.5);
+        TH2F* map_lc_EEm = new TH2F("map_lc_EEm", "LC map EE-;#it{ix};#it{iy}",
+                                         101, -0.5, 100.5, 100, 0.5, 100.5);
+
+       
         TFile* file = TFile::Open(inputFile.c_str(), "READ");
         CrystalsEBTree ebTree((TTree*)file->Get("eb_xstals"));
         CrystalsEETree eeTree((TTree*)file->Get("ee_xstals"));
@@ -142,6 +149,8 @@ int main(int argc, char *argv[])
                 n_hits[index] = 0;
             if(ebTree.ieta > -50 && ebTree.ieta < -44 && ebTree.iphi > 10 && ebTree.iphi < 16)
                 n_hits[index] = 0;
+
+	    map_lc_EB -> Fill(ebTree.iphi, ebTree.ieta, ebTree.rec_hit->GetLCSum()/ebTree.rec_hit->GetNhits());
         }
 
         while(eeTree.NextEntry())
@@ -152,9 +161,14 @@ int main(int argc, char *argv[])
 	    int iring = eeTree.iring;
 
 	    if(iring>0)
-	      map_EEp->Fill(ix, iy, ic_EE);
+	    {  map_EEp->Fill(ix, iy, ic_EE);
+	       map_lc_EEp->Fill(ix, iy,  eeTree.rec_hit->GetLCSum()/eeTree.rec_hit->GetNhits());
+            }
             else
-	      map_EEm->Fill(ix, iy, ic_EE);
+	    {  map_EEm->Fill(ix, iy, ic_EE);
+	       map_lc_EEm->Fill(ix, iy,  eeTree.rec_hit->GetLCSum()/eeTree.rec_hit->GetNhits());
+            }
+
         }
 
         //---SM averages
@@ -346,7 +360,7 @@ int main(int argc, char *argv[])
 		float ic = test2 -> GetBinContent(i);
 
 		float sm_avg = sm_ic_mean[(i-1)/20][0];
-		cout << i << " " << sm_avg << endl;
+		//cout << i << " " << sm_avg << endl;
 
 		test2 -> SetBinContent(i, ic/sm_avg);
 	}
@@ -435,6 +449,9 @@ int main(int argc, char *argv[])
         map_EEp->Write("map_ic_EEp");
         map_EEm->Write("map_ic_EEm");
         map_corrections->Write("map_corrections");
+	map_lc_EB->Write("map_lc_EB");
+	map_lc_EEm->Write("map_lc_EEm");
+	map_lc_EEp->Write("map_lc_EEp");
         
         file->Close();
     }

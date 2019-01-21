@@ -29,7 +29,7 @@ process.ioFilesOpt = cms.PSet(
         # "$CMSSW_BASE/src/PhiSym/EcalCalibAlgos/ntuples/Comm2016_weights/summed_269012-1_269073-68.root"
 
         # Comm2017
-        "$CMSSW_BASE/src/PhiSym/EcalCalibAlgos/test/ICRunF_noCorrection.root"
+        "$CMSSW_BASE/src/PhiSym/EcalCalibAlgos/scripts/summed_1_999999.root"
     )
 )
         

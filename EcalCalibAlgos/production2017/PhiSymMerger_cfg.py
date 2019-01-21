@@ -22,7 +22,7 @@ process.GlobalTag = GlobalTag(process.GlobalTag, '94X_dataRun2_ReReco_EOY17_v2')
 process.source = cms.Source("PoolSource",
                             processingMode = cms.untracked.string("RunsAndLumis"),
                             fileNames = cms.untracked.vstring(
-                                "/store/group/dpg_ecal/alca_ecalcalib/phiSymmetry/AlCaPhiSym/crab_PHISYM-CMSSW_9_4_0-multifit-94X_dataRun2_ReReco_EOY17_v2-RunE_IC2017_v9/180202_164049/0000/phisym_multifit_1lumis_10.root"
+                                "/store/group/dpg_ecal/alca_ecalcalib/phiSymmetry/AlCaPhiSym/crab_PHISYM-CMSSW_9_4_0-multifit-94X_dataRun2_ReReco_EOY17_v6-Run2017B_EOY/181213_152304/0001/phisym_multifit_1lumis_1427.root"
                             )
 )                                
 process.source.skipBadFiles = cms.untracked.bool(True)
