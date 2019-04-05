@@ -118,6 +118,7 @@ CrystalsEBTree::CrystalsEBTree()
     tree_->Branch("mean_bs_y", &mean_bs_y, "mean_bs_y/F");
     tree_->Branch("mean_bs_sigmay", &mean_bs_sigmay, "mean_bs_sigmay/F");
     tree_->Branch("mean_bs_z", &mean_bs_z, "mean_bs_z/F");
+    tree_->Branch("mean_bs_sigmaz", &mean_bs_sigmaz);
     tree_->Branch("ring_average", &ring_average, "ring_average/F");
     tree_->Branch("ring_average_uncleaned", &ring_average_uncleaned, "ring_average_uncleaned/F");
     tree_->Branch("rec_hit", &rec_hit);

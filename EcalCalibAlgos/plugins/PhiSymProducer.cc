@@ -41,9 +41,10 @@
 using namespace std;
 
 //****************************************************************************************
-
+		
 class PhiSymProducer : public edm::one::EDProducer<edm::EndLuminosityBlockProducer,
-                                                 edm::one::WatchLuminosityBlocks>
+						   edm::one::WatchLuminosityBlocks,
+						   edm::Accumulator>
 {
 public:
     explicit PhiSymProducer(const edm::ParameterSet& pSet);
@@ -53,10 +54,10 @@ private:
 
     //---methods
     virtual void beginJob();
-    virtual void beginLuminosityBlock(edm::LuminosityBlock const& lumi, edm::EventSetup const& setup) override;
-    virtual void endLuminosityBlock(edm::LuminosityBlock const& lumi, edm::EventSetup const& setup) override {};
+    virtual void beginLuminosityBlock(edm::LuminosityBlock const& lumi, edm::EventSetup const& setup);
+    virtual void endLuminosityBlock(edm::LuminosityBlock const& lumi, edm::EventSetup const& setup) {};
     virtual void endLuminosityBlockProduce(edm::LuminosityBlock& lumi, edm::EventSetup const& setup) override;
-    virtual void produce(edm::Event& event, const edm::EventSetup& setup);
+    virtual void accumulate(edm::Event const& event, edm::EventSetup const& setup) override;
     virtual void endJob();
 
     //---input 
@@ -68,10 +69,14 @@ private:
     edm::EDGetTokenT<EBRecHitCollection> eeToken_;
     edm::EDGetTokenT<reco::BeamSpot>     beamSpotToken_;
     float          etCutEB_;
+    vector<double> eThresholdsEB2016_;
     vector<double> eThresholdsEB_;
     float          etCutEE_;
+    vector<double> A2016_;
+    vector<double> B2016_;
     vector<double> A_;
     vector<double> B_;
+    float          thrEEmod2016_;
     float          thrEEmod_;
     int            nMisCalib_;
     vector<double> misCalibRangeEB_;
@@ -99,6 +104,7 @@ private:
     //---output plain tree
     bool makeSpectraTreeEB_;
     bool makeSpectraTreeEE_;
+    bool use2016Thresholds_;
     EBTree outEBTree_;
     EETree outEETree_;    
     edm::Service<TFileService> fs_;
@@ -111,10 +117,14 @@ PhiSymProducer::PhiSymProducer(const edm::ParameterSet& pSet):
     eeToken_(consumes<EBRecHitCollection>(pSet.getParameter<edm::InputTag>("endcapHitCollection"))),
     beamSpotToken_(consumes<reco::BeamSpot>(pSet.getParameter<edm::InputTag>("beamspot"))),
     etCutEB_(pSet.getParameter<double>("etCut_barrel")),
+    eThresholdsEB2016_(pSet.getParameter<vector<double> >("eThresholds_barrel2016")),
     eThresholdsEB_(pSet.getParameter<vector<double> >("eThresholds_barrel")),
     etCutEE_(pSet.getParameter<double>("etCut_endcap")),
+    A2016_(pSet.getParameter<vector<double> >("A2016")),
+    B2016_(pSet.getParameter<vector<double> >("B2016")),
     A_(pSet.getParameter<vector<double> >("A")),
     B_(pSet.getParameter<vector<double> >("B")),
+    thrEEmod2016_(pSet.getParameter<double>("thrEEmod2016")),
     thrEEmod_(pSet.getParameter<double>("thrEEmod")),
     nMisCalib_(pSet.getParameter<int>("nMisCalib")/2),
     misCalibRangeEB_(pSet.getParameter<vector<double> >("misCalibRangeEB")),
@@ -123,10 +133,11 @@ PhiSymProducer::PhiSymProducer(const edm::ParameterSet& pSet):
     statusThreshold_(pSet.getParameter<int>("statusThreshold")),
     nLumis_(0),
     makeSpectraTreeEB_(pSet.getUntrackedParameter<bool>("makeSpectraTreeEB")),
-    makeSpectraTreeEE_(pSet.getUntrackedParameter<bool>("makeSpectraTreeEE"))
+    makeSpectraTreeEE_(pSet.getUntrackedParameter<bool>("makeSpectraTreeEE")),
+    use2016Thresholds_(pSet.getUntrackedParameter<bool>("use2016Thresholds"))
 {    
     //---register the product
-    produces<PhiSymInfoCollection, edm::Transition::EndLuminosityBlock>();
+    produces<PhiSymInfoCollection,   edm::Transition::EndLuminosityBlock>();
     produces<PhiSymRecHitCollection, edm::Transition::EndLuminosityBlock>("EB");
     produces<PhiSymRecHitCollection, edm::Transition::EndLuminosityBlock>("EE");
 
@@ -155,15 +166,36 @@ void PhiSymProducer::beginJob()
         etCutsEB_[iRing] = -1;
     for(int iRing=0; iRing<ringsInOneEE; ++iRing)
     {
-        if(iRing < 30)
-            eThresholdsEE_[iRing] = thrEEmod_*(B_[0] + A_[0]*iRing)/1000;
-        else
-            eThresholdsEE_[iRing] = thrEEmod_*(B_[1] + A_[1]*iRing)/1000;
-        eThresholdsEE_[iRing+ringsInOneEE] = eThresholdsEE_[iRing];
-        etCutsEE_[iRing] = -1;
-        etCutsEE_[iRing+ringsInOneEE] = -1;
-    }
+		if(use2016Thresholds_)
+		{
+		    if(iRing < 30)
+		        eThresholdsEE_[iRing] = thrEEmod2016_*(B2016_[0] + A2016_[0]*iRing)/1000;
+		    else
+		        eThresholdsEE_[iRing] = thrEEmod2016_*(B2016_[1] + A2016_[1]*iRing)/1000;
+		}
 
+		else
+		{
+			if(iRing < 31)
+			{	eThresholdsEE_[iRing] = thrEEmod_*(B_[0] + (A_[0]*iRing)*(A_[0]*iRing));
+			}
+
+			else
+			{	eThresholdsEE_[iRing] = thrEEmod_*(B_[1] + A_[1]*iRing);
+			}
+		}
+
+		eThresholdsEE_[iRing+ringsInOneEE] = eThresholdsEE_[iRing];
+		etCutsEE_[iRing] = -1;
+		etCutsEE_[iRing+ringsInOneEE] = -1;
+    }
+	
+	for(unsigned int i=0; i<eThresholdsEB_.size(); ++i)
+		cout << eThresholdsEB_[i] << endl;
+	if(use2016Thresholds_)
+	{	eThresholdsEB_.clear();
+		eThresholdsEB_ = eThresholdsEB2016_;
+	}
     //---misCalib value init (nMisCalib is half oj the correct value!)
     float misCalibStepEB = fabs(misCalibRangeEB_[1]-misCalibRangeEB_[0])/(nMisCalib_*2);
     float misCalibStepEE = fabs(misCalibRangeEE_[1]-misCalibRangeEE_[0])/(nMisCalib_*2);
@@ -256,23 +288,19 @@ void PhiSymProducer::beginLuminosityBlock(edm::LuminosityBlock const& lumi, edm:
 
 void PhiSymProducer::endLuminosityBlockProduce(edm::LuminosityBlock& lumi, edm::EventSetup const& setup)    
 {
-
     //---put the collection in the LuminosityBlocks tree
     if(nLumis_ == lumisToSum_)
     {
-
         lumiInfo_->back().SetEndLumi(lumi);
 
         //---dump LS information into json
         if(!outLSInfoJson_.is_open())
         {
-           
-	 //---CRAB3 only transfers files ending in .root, so name this .root even though is a json
+            //---CRAB3 only transfers files ending in .root, so name this .root even though is a json
             outLSInfoJson_.open("phisym_lumi_info_json.root", ofstream::out);
             outLSInfoJson_ << "{" << endl;
         }
         else
-
             outLSInfoJson_ << "," << endl;
 
         outLSInfoJson_ << "\"" << lumi.luminosityBlockAuxiliary().beginTime().unixTime() << "\" : " 
@@ -283,15 +311,18 @@ void PhiSymProducer::endLuminosityBlockProduce(edm::LuminosityBlock& lumi, edm::
                        << lumiInfo_->back().GetNEvents() 
                        << "]";
 
-        lumi.put(std::move(lumiInfo_));
+
+	cout << lumiInfo_->size() << endl;
+        
+        lumi.put(std::move(lumiInfo_), "");
         lumi.put(std::move(recHitCollEB_), "EB");
         lumi.put(std::move(recHitCollEE_), "EE");
-        nLumis_ = 0;
 
+        nLumis_ = 0;
     }
 }
 
-void PhiSymProducer::produce(edm::Event& event, const edm::EventSetup& setup)
+void PhiSymProducer::accumulate(edm::Event const& event, edm::EventSetup const& setup)
 {
     uint64_t totHitsEB=0;
     uint64_t totHitsEE=0;
@@ -331,8 +362,7 @@ void PhiSymProducer::produce(edm::Event& event, const edm::EventSetup& setup)
         //---check channel status
         if((*chStatus_)[ebHit].getStatusCode() > statusThreshold_)
             lumiInfo_->back().SetBadChannel(recHit.id(), (*chStatus_)[ebHit].getStatusCode());
-	else
-            lumiInfo_->back().SetGoodChannel(recHit.id(), (*chStatus_)[ebHit].getStatusCode());
+
         //---compute et + miscalibration
         float etValues[11];
         //---one can do this in one for loop from -nMis to +nMis but in this way the
@@ -375,6 +405,7 @@ void PhiSymProducer::produce(edm::Event& event, const edm::EventSetup& setup)
             outEBTree_.GetTTreePtr()->Fill();
         }
     }
+
     //---EE---
     for(auto& recHit : *endcapRecHitsHandle_.product())
     {
@@ -389,8 +420,7 @@ void PhiSymProducer::produce(edm::Event& event, const edm::EventSetup& setup)
         float eta=endcapGeometry->getGeometry(eeHit)->getPosition().eta();
         if((*chStatus_)[eeHit].getStatusCode() > statusThreshold_)
             lumiInfo_->back().SetBadChannel(recHit.id(), (*chStatus_)[eeHit].getStatusCode());
-	else
-            lumiInfo_->back().SetGoodChannel(recHit.id(), (*chStatus_)[eeHit].getStatusCode());
+
         //---compute et + miscalibration
         float etValues[11];
         //---one can do this in one for loop from -nMis to +nMis but in this way the
