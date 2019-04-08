@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
         cout << "Usage : " << argv[0] << " [parameters.py]" << endl;
         return 0;
     }
-    if(!edm::readPSetsFrom(argv[1])->existsAs<edm::ParameterSet>("process"))
+    if(!edm::boost_python::readPSetsFrom(argv[1])->existsAs<edm::ParameterSet>("process"))
     {
         cout << " ERROR: ParametersSet 'process' is missing in your configuration file"
              << endl;
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
     }
 
     //---get the python configuration
-    const edm::ParameterSet &process = edm::readPSetsFrom(argv[1])->getParameter<edm::ParameterSet>("process");
+    const edm::ParameterSet &process = edm::boost_python::readPSetsFrom(argv[1])->getParameter<edm::ParameterSet>("process");
     const edm::ParameterSet &filesOpt = process.getParameter<edm::ParameterSet>("ioFilesOpt");
     
     bool absoluteICs = process.getParameter<bool>("absoluteICs");

@@ -520,7 +520,7 @@ int main( int argc, char *argv[] )
     thisBlkSumSigmaZ_=0;
 
     //-----get the python configuration-----
-    auto process = edm::readConfig(argv[1], argc, argv);
+    auto process = edm::boost_python::readConfig(argv[1], argc, argv);
     const edm::ParameterSet &filesOpt = process->getParameter<edm::ParameterSet>("ioFilesOpt");
     const edm::ParameterSet &IOVBounds = process->getParameter<edm::ParameterSet>("IOVBounds");
 
