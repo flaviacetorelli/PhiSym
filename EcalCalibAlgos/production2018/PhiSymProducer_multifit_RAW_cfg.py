@@ -1,11 +1,19 @@
-import subprocess
+# Auto generated configuration file
+# using: 
+# Revision: 1.19 
+# Source: /local/reps/CMSSW/CMSSW/Configuration/Applications/python/ConfigBuilder.py,v 
+# with command line options: step2 --conditions auto:phase1_2018_realistic -n 10 --era Run2_2018 --eventcontent FEVTDEBUGHLT -s DIGI:pdigi_valid,L1,DIGI2RAW,HLT:@relval2018 --datatier GEN-SIM-DIGI-RAW --geometry DB:Extended --python DigiFull_2018.py --filein file:step1.root --fileout file:step2.root --nThreads 8 --mc
+#/store/mc/RunIISummer17PrePremix/Neutrino_E-10_gun/GEN-SIM-DIGI-RAW/MCv2_correctPU_94X_mc2017_realistic_v9-v1/40042/38A0603F-FE12-E811-96DC-0CC47A4D7678.root
+
 import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
-from Configuration.AlCa.GlobalTag import GlobalTag
+from Configuration.StandardSequences.Eras import eras
 
-# parse commad line options
+era = eras.Run2_2017
+
+
 options = VarParsing('analysis')
-options.maxEvents = -1
+
 options.outputFile = 'phisym_multifit_1lumis.root'
 options.register('datasets',
                  '',
@@ -19,41 +27,34 @@ options.register('debug',
                  "Print debug messages")
 options.parseArguments()
 
-process=cms.Process("PHISYM")
+process=cms.Process("PHISYM", era)
 
-rawTag    = cms.InputTag('source')
-
-process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
-process.load('Configuration.Geometry.GeometryExtended2017Reco_cff')
-process.load('Configuration.StandardSequences.L1Reco_cff')
-process.load('Configuration.StandardSequences.RawToDigi_Data_cff')
-process.load('RecoLuminosity.LumiProducer.bunchSpacingProducer_cfi')
-process.load('RecoLocalCalo.EcalRecProducers.ecalMultiFitUncalibRecHit_cfi')
-process.load('RecoLocalCalo.EcalRecProducers.ecalUncalibRecHit_cfi')
-process.load('RecoLocalCalo.EcalRecProducers.ecalRecHit_cfi')
-process.load('RecoVertex.BeamSpotProducer.BeamSpot_cff')
+# import of standard configurations
+process.load('Configuration.StandardSequences.Services_cff')
+process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
+process.load('FWCore.MessageService.MessageLogger_cfi')
+process.load('Configuration.EventContent.EventContent_cff')
+process.load('SimGeneral.MixingModule.mixNoPU_cfi')
 process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
-process.load("RecoLocalCalo.Configuration.hcalLocalReco_cff")
+process.load('Configuration.StandardSequences.MagneticField_cff')
+process.load('Configuration.StandardSequences.Digi_cff')
+process.load('Configuration.StandardSequences.SimL1Emulator_cff')
+process.load('Configuration.StandardSequences.DigiToRaw_cff')
+process.load('Configuration.StandardSequences.EndOfProcess_cff')
+process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.load("RecoLocalCalo.Configuration.ecalLocalRecoSequence_cff")
 process.load("EventFilter.HcalRawToDigi.HcalRawToDigi_cfi")
 process.load("EventFilter.EcalRawToDigi.EcalUnpackerData_cfi")
 process.load("RecoLuminosity.LumiProducer.bunchSpacingProducer_cfi")
-process.load('FWCore/MessageService/MessageLogger_cfi')
+process.load('RecoVertex.BeamSpotProducer.BeamSpot_cff')
 
-process.MessageLogger.cerr.FwkReport.reportEvery = 1000
-process.MessageLogger.cerr.default = cms.untracked.PSet(
-    limit = cms.untracked.int32(10000000),
-    reportEvery = cms.untracked.int32(5000)
-)
 
-# import of standard configurations
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(options.maxEvents)
+    input = cms.untracked.int32(100)
 )
 
-# skip bad events
 process.options = cms.untracked.PSet(
-    SkipEvent = cms.untracked.vstring('ProductNotFound'),
+#    SkipEvent = cms.untracked.vstring('ProductNotFound'),
 )
 
 # Input source
@@ -72,39 +73,19 @@ for dataset in options.datasets:
             print(ifile)
 
 process.source = cms.Source("PoolSource",
-#                             inputCommands = cms.untracked.vstring(
-#                                 'keep *',
-#                                 'drop *_hltEcalDigis_*_*',
-#                                 'drop *_hltTriggerSummaryAOD_*_*'
-#                             ),
-                            #fileNames = cms.untracked.vstring(files)
-                            fileNames = cms.untracked.vstring(
-"/store/mc/RunIISummer17PrePremix/Neutrino_E-10_gun/GEN-SIM-DIGI-RAW/MCv2_correctPU_94X_mc2017_realistic_v9-v1/20025/FED79EE9-CE15-E811-99DF-0CC47A7C3572.root"
-#"/store/data/Run2018A/SingleMuon/AOD/PromptReco-v3/000/316/717/00000/CA9D04B2-EB65-E811-8372-FA163EE0B5EF.root"
-#                                "/store/data/Run2018A/AlCaPhiSym/RAW/v1/000/315/259/00000/9443EE2A-9F49-E811-9B86-FA163E7121A5.root"
-#                               "/store/data/Run2018A/SingleMuon/RAW/v1/000/316/944/00000/18C27320-8865-E811-91E4-FA163EF26B2D.root"
-                            )
-                        )
+#    dropDescendantsOfDroppedBranches = cms.untracked.bool(False),
+    fileNames = cms.untracked.vstring("/store/mc/RunIISummer17PrePremix/Neutrino_E-10_gun/GEN-SIM-DIGI-RAW/MCv2_correctPU_94X_mc2017_realistic_v9-v1/40042/38A0603F-FE12-E811-96DC-0CC47A4D7678.root"),
+    secondaryFileNames = cms.untracked.vstring()
+)
+
 
 # Production Info
 process.configurationMetadata = cms.untracked.PSet(
     version = cms.untracked.string('$Revision: 1.20 $'),
     annotation = cms.untracked.string('step_PHISYM nevts:'+str(options.maxEvents)),
-    name = cms.untracked.string('PhiSymProducer')
+    name = cms.untracked.string('PhiSymProducerRAW')
 )
 
-#ecalMultiFitUncalibRecHit
-process.ecalMultiFitUncalibRecHit.EBdigiCollection = cms.InputTag("hltEcalPhiSymFilter","phiSymEcalDigisEB")
-process.ecalMultiFitUncalibRecHit.EEdigiCollection = cms.InputTag("hltEcalPhiSymFilter","phiSymEcalDigisEE")
-
-#ecalRecHit (no ricovery)
-process.ecalRecHit.killDeadChannels = cms.bool( False )
-process.ecalRecHit.recoverEBVFE = cms.bool( False )
-process.ecalRecHit.recoverEEVFE = cms.bool( False )
-process.ecalRecHit.recoverEBFE = cms.bool( False )
-process.ecalRecHit.recoverEEFE = cms.bool( False )
-process.ecalRecHit.recoverEEIsolatedChannels = cms.bool( False )
-process.ecalRecHit.recoverEBIsolatedChannels = cms.bool( False )
 
 # PHISYM producer
 process.load('PhiSym.EcalCalibAlgos.PhiSymProducer_cfi')
@@ -119,7 +100,8 @@ process.load('PhiSym.EcalCalibAlgos.PhiSymProducer_cfi')
 # Output definition
 PHISYM_output_commands = cms.untracked.vstring(
     "drop *",
-    "keep *_PhiSymProducer_*_*")
+    "keep *_PhiSymProducerRAW_*_*"
+)
 
 process.RECOSIMoutput = cms.OutputModule("PoolOutputModule",
                                          splitLevel = cms.untracked.int32(0),
@@ -130,65 +112,58 @@ process.RECOSIMoutput = cms.OutputModule("PoolOutputModule",
 process.TFileService = cms.Service("TFileService",
                                    fileName = cms.string("phisym_spectra.root"))
 
-# GLOBAL-TAG
+
+
+# Other statements
+process.mix.digitizers = cms.PSet(process.theDigitizersValid)
 from CondCore.DBCommon.CondDBSetup_cfi import *
 process.GlobalTag = cms.ESSource("PoolDBESSource",
                                  CondDBSetup,
                                  connect = cms.string('frontier://FrontierProd/CMS_CONDITIONS'),
-#                                 globaltag = cms.string('101X_dataRun2_Prompt_v9'),             #RunD
-#                                 globaltag = cms.string('102X_dataRun2_Sep2018Rereco_v1'), #RunABC
-                                 globaltag = cms.string('80X_dataRun2_2016LegacyRepro_v4'), #2016
+                                 globaltag = cms.string('94X_mc2017_realistic_v14'), #2017MC
                                  # Get individual tags (template)
                                  toGet = cms.VPSet(
-#                                     cms.PSet(record = cms.string("EcalIntercalibConstantsRcd"),
-#                                              tag = cms.string("EcalIntercalibConstants_2017_2015_at_high_eta"),
-#                                              connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
-#                                          ),
-                                     cms.PSet(record = cms.string("EcalLaserAPDPNRatiosRcd"),
-                                              tag = cms.string("EcalLaserAPDPNRatios_rereco2016_v1"),
-                                              connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
-                                          ),
-                                     cms.PSet(record = cms.string("EcalPedestalsRcd"),
-                                              tag = cms.string("EcalPedestals_timestamp_UltraLegacy_2016_v1"),
-                                              connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
-                                          ),
-                                     cms.PSet(record = cms.string("EcalPulseShapesRcd"),
-                                              tag = cms.string("EcalPulseShapes_Ultimate2016_calib"),
-                                              connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
-                                          ),
                                  )
 )
 
-# SCHEDULE
 
-#process.hcalDigis.silent = cms.untracked.bool(False)
-process.hcalDigis.InputLabel = rawTag
 process.ecalDigis = process.ecalEBunpacker.clone()
-process.ecalDigis.InputLabel = rawTag
-#process.hbheprerecogpu.processQIE11 = cms.bool(True)
 
-process.finalize = cms.EndPath(process.Out)
 
-process.bunchSpacing = cms.Path(
-    process.bunchSpacingProducer
-)
-
-process.digiPath = cms.Path(
-    #process.hcalDigis
-    process.ecalDigis
+process.finalize = cms.EndPath(process.RECOSIMoutput
 )
 
 
+# ----------------------------------
+# ---- run the dumper for ECAL
+# ----------------------------------
 
-process.reconstruction_step = cms.Sequence( process.bunchSpacingProducer * (process.ecalMultiFitUncalibRecHit + process.ecalRecHit) )
+
+#process.TFileService = cms.Service("TFileService",
+     #fileName = cms.string(options.outputFile)
+#)
+
+#process.TreeProducer = cms.EDAnalyzer('TreeProducer',
+                           #EcalUncalibRecHitsEBCollection = cms.InputTag("ecalMultiFitUncalibRecHit","EcalUncalibRecHitsEB"),
+                           #EcalUncalibRecHitsEECollection = cms.InputTag("ecalMultiFitUncalibRecHit","EcalUncalibRecHitsEE"),
+                           #)
+
+#process.TreeProducer_step = cms.Path(process.TreeProducer)
+
+process.ecalRecHit.killDeadChannels = cms.bool( False )
+process.ecalRecHit.recoverEBVFE = cms.bool( False )
+process.ecalRecHit.recoverEEVFE = cms.bool( False )
+process.ecalRecHit.recoverEBFE = cms.bool( False )
+process.ecalRecHit.recoverEEFE = cms.bool( False )
+process.ecalRecHit.recoverEEIsolatedChannels = cms.bool( False )
+process.ecalRecHit.recoverEBIsolatedChannels = cms.bool( False )
 
 
-process.schedule = cms.Schedule(
-    process.bunchSpacing,
-    process.digiPath,
-    process.reconstruction_step,
-#    process.ecalecalLocalRecoSequence,
-    #process.TreeProducer_step,
+process.p = cms.Path(
+    process.bunchSpacingProducer*
+    process.ecalDigis*
+    process.ecalMultiFitUncalibRecHit*
+    process.ecalRecHit
 )
 
 process.p *= process.offlineBeamSpot
@@ -197,9 +172,16 @@ process.p *= process.PhiSymProducer
 process.RECOSIMoutput_step = cms.EndPath(process.RECOSIMoutput)
 process.schedule = cms.Schedule(process.p, process.RECOSIMoutput_step)
 
+print process.p
+print process.schedule
 
 
+#Setup FWK for multithreaded
+process.options.numberOfThreads=cms.untracked.uint32(1)
+process.options.numberOfStreams=cms.untracked.uint32(0)
 
 
-
-
+# Add early deletion of temporary data products to reduce peak memory need
+from Configuration.StandardSequences.earlyDeleteSettings_cff import customiseEarlyDelete
+process = customiseEarlyDelete(process)
+# End adding early deletion

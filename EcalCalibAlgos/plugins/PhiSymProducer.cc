@@ -190,8 +190,6 @@ void PhiSymProducer::beginJob()
 		etCutsEE_[iRing+ringsInOneEE] = -1;
     }
 	
-	for(unsigned int i=0; i<eThresholdsEB_.size(); ++i)
-		cout << eThresholdsEB_[i] << endl;
 	if(use2016Thresholds_)
 	{	eThresholdsEB_.clear();
 		eThresholdsEB_ = eThresholdsEB2016_;
