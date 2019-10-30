@@ -43,8 +43,8 @@ using namespace std;
 //****************************************************************************************
 		
 class PhiSymProducer : public edm::one::EDProducer<edm::EndLuminosityBlockProducer,
-						   edm::one::WatchLuminosityBlocks,
-						   edm::Accumulator>
+                                                  edm::one::WatchLuminosityBlocks>
+
 {
 public:
     explicit PhiSymProducer(const edm::ParameterSet& pSet);
@@ -54,10 +54,10 @@ private:
 
     //---methods
     virtual void beginJob();
-    virtual void beginLuminosityBlock(edm::LuminosityBlock const& lumi, edm::EventSetup const& setup);
-    virtual void endLuminosityBlock(edm::LuminosityBlock const& lumi, edm::EventSetup const& setup) {};
+    virtual void beginLuminosityBlock(edm::LuminosityBlock const& lumi, edm::EventSetup const& setup) override;
+    virtual void endLuminosityBlock(edm::LuminosityBlock const& lumi, edm::EventSetup const& setup) override {};
     virtual void endLuminosityBlockProduce(edm::LuminosityBlock& lumi, edm::EventSetup const& setup) override;
-    virtual void accumulate(edm::Event const& event, edm::EventSetup const& setup) override;
+    virtual void produce(edm::Event& event, const edm::EventSetup& setup);
     virtual void endJob();
 
     //---input 
@@ -320,7 +320,8 @@ void PhiSymProducer::endLuminosityBlockProduce(edm::LuminosityBlock& lumi, edm::
     }
 }
 
-void PhiSymProducer::accumulate(edm::Event const& event, edm::EventSetup const& setup)
+
+void PhiSymProducer::produce(edm::Event& event, const edm::EventSetup& setup)
 {
     uint64_t totHitsEB=0;
     uint64_t totHitsEE=0;

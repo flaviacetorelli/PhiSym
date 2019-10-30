@@ -4,10 +4,11 @@ process = cms.PSet()
 
 process.absoluteICs = cms.bool(False)
 process.ioFilesOpt = cms.PSet(
+    doEFlow = cms.bool(True),
     getRunsFromFileName = cms.bool(True),
     userOutputName = cms.bool(False),
     outputFiles = cms.vstring(""),
-    outputFileBase = cms.string('corrections_'),
+    outputFileBase = cms.string('corrections_ef'),
     inputFiles = cms.vstring(
         # # 2012C Boff
         # "$CMSSW_BASE/src/PhiSym/EcalCalibAlgos/ntuples/2012C_v1/summed_200781_200798.root",

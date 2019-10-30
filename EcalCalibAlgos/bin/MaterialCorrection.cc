@@ -46,7 +46,8 @@ int main(int argc, char *argv[])
         cout << "Usage : " << argv[0] << " [parameters.py]" << endl;
         return 0;
     }
-    if(!edm::boost_python::readPSetsFrom(argv[1])->existsAs<edm::ParameterSet>("process"))
+     if(!edm::readPSetsFrom(argv[1])->existsAs<edm::ParameterSet>("process"))
+    //if(!edm::boost_python::readPSetsFrom(argv[1])->existsAs<edm::ParameterSet>("process"))
     {
         cout << " ERROR: ParametersSet 'process' is missing in your configuration file"
              << endl;
@@ -54,11 +55,13 @@ int main(int argc, char *argv[])
     }
 
     //---get the python configuration
-    const edm::ParameterSet &process = edm::boost_python::readPSetsFrom(argv[1])->getParameter<edm::ParameterSet>("process");
+    //const edm::ParameterSet &process = edm::boost_python::readPSetsFrom(argv[1])->getParameter<edm::ParameterSet>("process");
+    const edm::ParameterSet &process = edm::readPSetsFrom(argv[1])->getParameter<edm::ParameterSet>("process");
     const edm::ParameterSet &filesOpt = process.getParameter<edm::ParameterSet>("ioFilesOpt");
     
     bool absoluteICs = process.getParameter<bool>("absoluteICs");
     bool userOutputName = filesOpt.getParameter<bool>("userOutputName");
+    bool doEFlow = filesOpt.getParameter<bool>("doEFlow");
     string outputFileBase = filesOpt.getParameter<string>("outputFileBase");
     vector<string> outputFiles = filesOpt.getParameter<vector<string> >("outputFiles");
     vector<string> inputFiles = filesOpt.getParameter<vector<string> >("inputFiles");
@@ -142,7 +145,8 @@ int main(int argc, char *argv[])
             if(absoluteICs)
                 ic_uncorr[index] = ebTree.ic_abs*ebTree.ic_ch;
             else
-                ic_uncorr[index] = ebTree.ic_ch;
+                if (doEFlow) ic_uncorr[index] = ebTree.ic_eflow;
+                else ic_uncorr[index] = ebTree.ic_ch;
             ebMap[index] = make_pair(ebTree.ieta, ebTree.iphi);
             //---skip a couple of bad TT (probably recovered from 2012 --- TO BE CHECKED)
             if(ebTree.ieta > 35 && ebTree.ieta < 41 && ebTree.iphi > 310 && ebTree.iphi < 316)

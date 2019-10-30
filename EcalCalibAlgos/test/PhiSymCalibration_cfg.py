@@ -29,7 +29,7 @@ options.register('niovs',
                  VarParsing.varType.int,
                  "Number of IOVs")
 options.register('debug',
-                 False,
+                 True,
                  VarParsing.multiplicity.singleton,
                  VarParsing.varType.bool,
                  "Print debug messages")
@@ -65,14 +65,18 @@ process.IOVBounds = cms.PSet(
 
 if options.debug:
     print(process.IOVBounds)
-
+    print 'ciao'
 process.ioFilesOpt = cms.PSet(    
     outputFile = cms.string('summed_'),
+
     
     oldConstantsFiles = cms.vstring(''),
     
     recoConstantsFile = cms.string('/afs/cern.ch/work/s/spigazzi/ECAL/CMSSW_8_0_17/src/PhiSym/EcalCalibAlgos/data/EcalIntercalibConstants_Prompt2016.dat'),
     
     inputFiles = cms.vstring(files)
+
 )
+
+print 'ciao'
 
