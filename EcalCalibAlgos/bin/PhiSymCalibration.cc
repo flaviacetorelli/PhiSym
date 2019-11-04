@@ -226,7 +226,7 @@ void ComputeICs()
 
 
     //--- compute EB weighted average for eflow (weighetd sum of the average sum of the ring )
-    TFile *f = new TFile("/afs/cern.ch/work/f/fcetorel/private/work2/prova_slc6/CMSSW_9_4_0/src/PhiSym/EcalCalibAlgos/weight.root"); //file with the weight, generated from reweight.cpp
+    TFile *f = new TFile("/afs/cern.ch/work/f/fcetorel/private/work2/EFlow/CMSSW_10_5_0/src/PhiSym/EcalCalibAlgos/weight.root"); //file with the weight, generated from reweight.cpp
     TH1F * weight_histo = (TH1F*)f->Get("weight_histo");
 
     for(int iRing=0; iRing<kNRingsEB; ++iRing)
@@ -579,8 +579,8 @@ int main( int argc, char *argv[] )
     thisBlkSumSigmaZ_=0;
 
     //-----get the python configuration-----
-    auto process = edm::readConfig(argv[1], argc, argv);
-    //auto process = edm::boost_python::readConfig(argv[1], argc, argv);
+    //auto process = edm::readConfig(argv[1], argc, argv); //9_4_0 compatibility
+    auto process = edm::boost_python::readConfig(argv[1], argc, argv); //10_5_0 compatibility
     const edm::ParameterSet &filesOpt = process->getParameter<edm::ParameterSet>("ioFilesOpt");
     const edm::ParameterSet &IOVBounds = process->getParameter<edm::ParameterSet>("IOVBounds");
 

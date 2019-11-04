@@ -45,7 +45,9 @@ int main(int argc, char *argv[])
         cout << "Usage : " << argv[0] << " [parameters.py]" << endl;
         return 0;
     }
-    if(!edm::readPSetsFrom(argv[1])->existsAs<edm::ParameterSet>("process"))
+
+    //if(!edm::readPSetsFrom(argv[1])->existsAs<edm::ParameterSet>("process")) // 9_4_0 compatibility
+    if(!edm::boost_python::readPSetsFrom(argv[1])->existsAs<edm::ParameterSet>("process")) //10_5_0 compatibility
     {
         cout << " ERROR: ParametersSet 'process' is missing in your configuration file"
              << endl;
@@ -53,8 +55,8 @@ int main(int argc, char *argv[])
     }
     
     //---get the python configuration
-    const edm::ParameterSet &process = edm::readPSetsFrom(argv[1])->getParameter<edm::ParameterSet>("process");    
-    //const edm::ParameterSet &process = edm::boost_python::readPSetsFrom(argv[1])->getParameter<edm::ParameterSet>("process");    
+    //const edm::ParameterSet &process = edm::readPSetsFrom(argv[1])->getParameter<edm::ParameterSet>("process");    // 9_4_0 compatibility
+    const edm::ParameterSet &process = edm::boost_python::readPSetsFrom(argv[1])->getParameter<edm::ParameterSet>("process");   //10_5_0 compatibility 
     bool absoluteICs = process.getParameter<bool>("absoluteICs");
     bool applyCorr = process.getParameter<bool >("applyCorrections");
     vector<string> types = process.getParameter<vector<string> >("variables");
