@@ -24,11 +24,13 @@
 
 #include "Calibration/Tools/interface/EcalRingCalibrationTools.h"
 
-#include "/afs/cern.ch/work/f/fcetorel/private/work2/prova_slc6/CMSSW_9_4_0/src/PhiSym/EcalCalibDataFormats/interface/PhiSymInfo.h"
-#include "/afs/cern.ch/work/f/fcetorel/private/work2/prova_slc6/CMSSW_9_4_0/src/PhiSym/EcalCalibDataFormats/interface/PhiSymRecHit.h"
-#include "/afs/cern.ch/work/f/fcetorel/private/work2/prova_slc6/CMSSW_9_4_0/src/PhiSym/EcalCalibDataFormats/interface/CalibrationFile.h"
-#include "/afs/cern.ch/work/f/fcetorel/private/work2/prova_slc6/CMSSW_9_4_0/src/PhiSym/EcalCalibAlgos/interface/utils.h"
-#include "/afs/cern.ch/work/f/fcetorel/private/work2/prova_slc6/CMSSW_9_4_0/src/PhiSym/EcalCalibAlgos/macros/GeometryTools.C"
+
+#include "PhiSym/EcalCalibDataFormats/interface/PhiSymInfo.h"
+#include "PhiSym/EcalCalibDataFormats/interface/PhiSymRecHit.h"
+#include "PhiSym/EcalCalibDataFormats/interface/CalibrationFile.h"
+#include "PhiSym/EcalCalibAlgos/interface/utils.h"
+#include "PhiSym/EcalCalibAlgos/macros/GeometryTools.C"
+
 
 using namespace std;
 
@@ -46,6 +48,8 @@ float thisBlkSumSigmaZ_=0;
 int nMisCalib_=-1;
 vector<float>* misCalibValuesEB_;
 vector<float>* misCalibValuesEE_;
+std::map<int,vector<uint32_t>> hrMap_ ; 
+std::map<int,vector<uint32_t>> x5Map_ ;
 
 static const short kNRingsEB = EcalRingCalibrationTools::N_RING_BARREL;
 static const short kNRingsEE = EcalRingCalibrationTools::N_RING_ENDCAP;
@@ -65,12 +69,7 @@ double ebRingsSumEtOdd_[kNRingsEB]={0};
 double ebRingsSumEt2_[kNRingsEB]={0};
 float  ebSumEtCuts_[kNRingsEB][2];
 double BarrelSumEtWeight_;
-float avg_p[171] = {0};
-float avg_m[171] = {0};
-float avgE_p[171] = {0};
-float avgE_m[171] = {0};
-float E_p[171] = {0};
-float E_m[171] = {0};
+
 
 //---EE
 double eeRingsSumEt_[kNRingsEE][11];
@@ -89,8 +88,14 @@ PhiSymRecHit ebXstalsOdd_[EBDetId::kSizeForDenseIndexing];
 int chStatusEB_[EBDetId::kSizeForDenseIndexing];
 bool   goodXstalsEB_[kNRingsEB][361][11];
 float  nGoodInRingEB_[kNRingsEB][11];
+//double kFactorsChEB_[EBDetId::kSizeForDenseIndexing];
+//double kFactorsChErrEB_[EBDetId::kSizeForDenseIndexing];
 double kFactorsChEB_[EBDetId::kSizeForDenseIndexing];
 double kFactorsChErrEB_[EBDetId::kSizeForDenseIndexing];
+double kFactors5x5EB_[EBDetId::kSizeForDenseIndexing];
+double kFactors5x5ErrEB_[EBDetId::kSizeForDenseIndexing];
+double kFactorsHrEB_[EBDetId::kSizeForDenseIndexing];
+double kFactorsHrErrEB_[EBDetId::kSizeForDenseIndexing];
 double ebICChErr_[EBDetId::kSizeForDenseIndexing]={0};
 float  icChMeanEB_[kNRingsEB];
 float  icChMeanEflow_;
@@ -128,15 +133,145 @@ CalibrationFile> outFile_;
 // + for the single channel k-factor otherwise the error is the RMS of the sumEt distribution
 // (sum over 1 block)
 // + this implies that the error on the single channel k-factor is larger.
-void ComputeKfactors()
+
+std::map<int,vector<uint32_t>> doHrVectorIndex() // compute a map of vectors, each vector contains the indexes of crystals belonging to same harness
+{
+    std::map<int,vector<uint32_t>> channels; 
+
+    //module +- 4,3,2,1
+    int ietamin=6;
+    int ietamax=25;
+    int iphimin=1;
+    int iphimax=10;
+    for (int keta=0; keta<4; keta++ ) //loop over eta
+    {    
+        for (int kphi = 0; kphi <36; kphi++ )
+        { 
+            vector<uint32_t> indexes_p, indexes_n;
+            for (int ieta=ietamin+keta*20; ieta <= ietamax+keta*20  ; ieta++)
+            {
+                for(int iphi=iphimin+kphi*10; iphi <= iphimax+kphi*10  ; iphi++)
+                {
+                   
+                   indexes_n.push_back(EBDetId(-ieta, iphi).denseIndex());
+                   indexes_p.push_back(EBDetId(ieta, iphi).denseIndex());
+
+                }
+            }
+/*            cout << "This is a negative harness  " << -(19+kphi+36*keta) << endl;
+            for (unsigned i=0; i < indexes_n.size() ; i++)
+            {
+                EBDetId ebXstal = EBDetId::detIdFromDenseIndex(indexes_n.at(i));
+                cout << "eta "<<ebXstal.ieta() <<"  phi " << ebXstal.iphi() << endl; 
+            
+	    }
+            cout << "This is a positive harness  " << 19+kphi+36*keta << endl;
+            for (unsigned i=0; i < indexes_p.size() ; i++)
+            {
+                EBDetId ebXstal = EBDetId::detIdFromDenseIndex(indexes_p.at(i));
+                cout << "eta "<<ebXstal.ieta() <<"  phi " << ebXstal.iphi() << endl; 
+            
+	    }*/
+            channels.insert(make_pair(-(19+kphi+36*keta),indexes_n));
+            channels.insert(make_pair(19+kphi+36*keta,indexes_p));
+        }
+    }
+
+    //module +- 0
+
+    ietamin=1;
+    ietamax=5;
+    iphimin=1;
+    iphimax=20;
+    for (int kphi = 0; kphi <18; kphi++ )
+    { 
+       vector<uint32_t> indexes_p, indexes_n;
+       for (int ieta=ietamin; ieta <= ietamax ; ieta++)
+       {
+           for(int iphi=iphimin+kphi*20; iphi <= iphimax+kphi*20  ; iphi++)
+           {
+              indexes_n.push_back(EBDetId(-ieta, iphi).denseIndex());
+              indexes_p.push_back(EBDetId(ieta, iphi).denseIndex());
+
+            }
+        }
+/*            cout << "This is a negative harness  " << -1-kphi << endl;
+            for (unsigned i=0; i < indexes_n.size() ; i++)
+            {
+                EBDetId ebXstal = EBDetId::detIdFromDenseIndex(indexes_n.at(i));
+                cout << "eta "<<ebXstal.ieta() <<"  phi " << ebXstal.iphi() << endl; 
+            
+	    }
+
+            cout << "This is a positive harness  " << 1+kphi<< endl;
+            for (unsigned i=0; i < indexes_p.size() ; i++)
+            {
+                EBDetId ebXstal = EBDetId::detIdFromDenseIndex(indexes_p.at(i));
+                cout << "eta "<<ebXstal.ieta() <<"  phi " << ebXstal.iphi() << endl; 
+            
+	    }*/
+        channels.insert(make_pair((-1-kphi),indexes_n));
+        channels.insert(make_pair(1+kphi,indexes_p));
+    }
+   return channels; 
+}
+
+std::map<int,vector<uint32_t>> do5x5VectorIndex() // compute a map of vectors, each vector contains the indexes of crystals belonging to same 5x5 matrix
+{
+    std::map<int,vector<uint32_t>> channels; 
+
+    int ietamin=1;
+    int ietamax=5;
+    int iphimin=1;
+    int iphimax=5;
+    for (int keta=0; keta<17; keta++ ) //loop over eta
+    {    
+        for (int kphi = 0; kphi <72; kphi++ )
+        { 
+            vector<uint32_t> indexes_p, indexes_n;
+            for (int ieta=ietamin+keta*5; ieta <= ietamax+keta*5  ; ieta++)
+            {
+                for(int iphi=iphimin+kphi*5; iphi <= iphimax+kphi*5  ; iphi++)
+                {
+                   indexes_n.push_back(EBDetId(-ieta, iphi).denseIndex());
+                   indexes_p.push_back(EBDetId(ieta, iphi).denseIndex());
+
+                }
+            }
+      /*      cout << "This is a negative 5x5  " << -(1+kphi+72*keta) << endl;
+            for (unsigned i=0; i < indexes_n.size() ; i++)
+            {
+                EBDetId ebXstal = EBDetId::detIdFromDenseIndex(indexes_n.at(i));
+                cout << "eta "<<ebXstal.ieta() <<"  phi " << ebXstal.iphi() << endl; 
+            
+	    }
+            cout << "This is a positive 5x5 " << 1+kphi+72*keta << endl;
+            for (unsigned i=0; i < indexes_p.size() ; i++)
+            {
+                EBDetId ebXstal = EBDetId::detIdFromDenseIndex(indexes_p.at(i));
+                cout << "eta "<<ebXstal.ieta() <<"  phi " << ebXstal.iphi() << endl; 
+            
+	    }*/
+            channels.insert(make_pair(-(1+kphi+72*keta),indexes_n));
+            channels.insert(make_pair(1+kphi+72*keta,indexes_p));
+        }
+    }
+
+  
+   return channels; 
+}
+
+
+void ComputeKfactors() // computes only channel based k-factor
 {
     TF1* kFactFitFunc = new TF1("kFFF", "[0]*x", -0.5, 0.5);
-    kFactFitFunc->SetParameter(0, 1);
+    kFactFitFunc->SetParameter(0, 1); 
     TGraphErrors* kFactorGraph = new TGraphErrors();
     //---EB---
     //---channel-based k-factors
     for(uint32_t index=0; index<EBDetId::kSizeForDenseIndexing; ++index)
     {
+
         ebICChErr_[index]=sqrt(ebXstals_[index].GetSumEt2()/ebXstals_[index].GetNhits()-
                              pow(ebXstals_[index].GetSumEt()/ebXstals_[index].GetNhits(), 2));
         float error = ebICChErr_[index]/ebXstals_[index].GetSumEt(0);
@@ -176,6 +311,68 @@ void ComputeKfactors()
     kFactorsComputed_=true;
 }
 
+
+
+void ComputeKfactors(vector<uint32_t> & channels) //computes k-factors channel, 5x5, harness
+{
+    TF1* kFactFitFunc = new TF1("kFFF", "[0]*x", -0.5, 0.5);
+    TGraphErrors* kFactorGraph = new TGraphErrors();
+    //channels.at(0)==1 ? kFactFitFunc->SetParameter(0,1) : kFactFitFunc->SetParameter(0,kFactorsChEB_[channels.at(0)-1]); // Error to be implemented
+    //---EB---
+    //---channel-based k-factors
+
+    //ebICChErr_[index]=sqrt(ebXstals_[index].GetSumEt2()/ebXstals_[index].GetNhits()-
+     //                      pow(ebXstals_[index].GetSumEt()/ebXstals_[index].GetNhits(), 2));
+    //float error = ebICChErr_[index]/ebXstals_[index].GetSumEt(0);
+    for(int iMis=0; iMis<nMisCalib_; ++iMis)
+    {
+        float point = 0.; 
+        float SumEtMis = 0.; 
+        float SumEt = 0.; 
+        float error = 0.;
+        float p_error = 0.; 
+
+        for (unsigned i = 0 ; i< channels.size(); i++)
+        {
+           uint32_t index = channels.at(i);
+           ebICChErr_[index]=sqrt(ebXstals_[index].GetSumEt2()/ebXstals_[index].GetNhits()-
+                           pow(ebXstals_[index].GetSumEt()/ebXstals_[index].GetNhits(), 2));
+           error = ebICChErr_[index]/ebXstals_[index].GetSumEt(0);
+           SumEtMis+= ebXstals_[index].GetSumEt(iMis); 
+           SumEt+=          ebXstals_[index].GetSumEt(0);
+           p_error = error*sqrt(pow(point, 2)+1);
+        }
+        point = SumEtMis/SumEt;  
+        kFactorGraph->SetPoint(iMis, misCalibValuesEB_->at(iMis)-1, point-1);
+        kFactorGraph->SetPointError(iMis, 0, p_error);
+    }
+    kFactorGraph->Fit(kFactFitFunc, "Q");
+    for (unsigned i = 0 ; i< channels.size(); i++)
+    {
+      uint32_t index = channels.at(i);
+      if (channels.size()==1) // k-factor per channel
+      {
+      kFactorsChEB_[index]=kFactorGraph->GetFunction("kFFF")->GetParameter(0);
+      kFactorsChErrEB_[index]=kFactorGraph->GetFunction("kFFF")->GetParError(0);
+      }
+      else if (channels.size()==25) //k-factor 5x5 matrix
+      {
+      kFactors5x5EB_[index]=kFactorGraph->GetFunction("kFFF")->GetParameter(0);
+      kFactors5x5ErrEB_[index]=kFactorGraph->GetFunction("kFFF")->GetParError(0);
+      }
+      else if (channels.size()==200 || channels.size()==100 ) //k-factor harness
+      {
+      kFactorsHrEB_[index]=kFactorGraph->GetFunction("kFFF")->GetParameter(0);
+      kFactorsHrErrEB_[index]=kFactorGraph->GetFunction("kFFF")->GetParError(0);
+      }
+    }
+
+    kFactFitFunc->Delete();
+    kFactorGraph->Delete();
+    kFactorsComputed_=true;
+
+}
+
 //----------return the channel-based k-factor --- sub_det: 0->EB, 1->EE-------------------
 pair<float, float> GetChannelKfactor(int index, int sub_det)
 {
@@ -187,12 +384,29 @@ pair<float, float> GetChannelKfactor(int index, int sub_det)
         return make_pair(kFactorsChEE_[index], kFactorsChErrEE_[index]);
 }
 
+//----------return the harness based k-factor for EB ----------------------
+pair<float, float> GetHarnessKfactor(int index)
+{
+    if(!kFactorsComputed_)
+        ComputeKfactors();
+    return make_pair(kFactorsHrEB_[index], kFactorsHrErrEB_[index]);
+}
+//----------return the 5x5 based k-factor for EB ----------------------
+pair<float, float> Get5x5Kfactor(int index)
+{
+    if(!kFactorsComputed_)
+        ComputeKfactors();
+    return make_pair(kFactors5x5EB_[index], kFactors5x5ErrEB_[index]);
+}
+
 //----------cumpute phisym ICs for both EB and EE and fill the output tree----------------
 void ComputeICs()
 {
 
     float icChEB[EBDetId::kSizeForDenseIndexing];
     float icChEflow[EBDetId::kSizeForDenseIndexing];
+    float icHrEflow[EBDetId::kSizeForDenseIndexing];
+    float ic5x5Eflow[EBDetId::kSizeForDenseIndexing];
     float icChEvenEB[EBDetId::kSizeForDenseIndexing];
     float icChOddEB[EBDetId::kSizeForDenseIndexing];
     float icChEE[EEDetId::kSizeForDenseIndexing];
@@ -264,7 +478,40 @@ void ComputeICs()
              }
         }
     }
-    ComputeKfactors();
+   //ComputeKfactors();
+//---- Compute K-Factors (ch, harness, 5x5) ------------------
+
+   for(uint32_t index=0; index<EBDetId::kSizeForDenseIndexing; ++index)
+   {
+       vector<uint32_t>channels_ch;  // kFactor per ch
+       channels_ch.push_back(index);
+       ComputeKfactors(channels_ch); 
+         
+   }
+
+  for (std::map<int,vector<uint32_t>>::iterator index=hrMap_.begin();index!=hrMap_.end(); index++)
+  {
+       ComputeKfactors((*index).second); 
+       
+   }
+  /*  for(uint32_t index=0; index<EBDetId::kSizeForDenseIndexing; ++index)
+    {
+        EBDetId ebXstal = EBDetId::detIdFromDenseIndex(index);
+        cout << "eta "<<ebXstal.ieta() <<"  phi " << ebXstal.iphi() <<  " K-factor "<< GetHarnessKfactor(index).first << endl;
+
+    }*/
+
+  for (std::map<int,vector<uint32_t>>::iterator index=x5Map_.begin();index!=x5Map_.end(); index++)
+  {
+       ComputeKfactors((*index).second); 
+       
+   }
+  /*  for(uint32_t index=0; index<EBDetId::kSizeForDenseIndexing; ++index)
+    {
+        EBDetId ebXstal = EBDetId::detIdFromDenseIndex(index);
+        cout << "eta "<<ebXstal.ieta() <<"  phi " << ebXstal.iphi() <<  " K-factor "<< Get5x5Kfactor(index).first << endl;
+
+    }*/
 
     //---loop over the EB channels and compute the ICs
     for(uint32_t index=0; index<EBDetId::kSizeForDenseIndexing; ++index)
@@ -279,19 +526,16 @@ void ComputeICs()
                                ebRingsSumEtOdd_[currentRing]-1)/GetChannelKfactor(index, 0).first+1);
         icChEflow[index] = 1/((ebXstals_[index].GetSumEt(0)/
                            BarrelSumEtWeight_-1)/GetChannelKfactor(index, 0).first+1);
+        icHrEflow[index] = 1; //to be implemented
+        ic5x5Eflow[index] = 1;  // to be implemented
        
-       int pn = WhichPN(ebXstal.ieta(), ebXstal.iphi());   //
-       pn > 0 ? avg_p[pn] += icChEflow[index] : avg_m[-pn] += icChEflow[index];      // sum of IC in the harness  
-       pn > 0 ? avgE_p[pn] += icChEflow[index]*ebXstals_[index].GetSumEt(0) : avgE_m[-pn] += icChEflow[index]*ebXstals_[index].GetSumEt(0); // sum of the IC energy weighted for harness        
-
-
                            
         if(currentRing != -1 && goodXstalsEB_[currentRing][ebXstal.iphi()][0])
         {
             icChMeanEB_[currentRing] += icChEB[index];
             icChEvenMeanEB_[currentRing] += icChEvenEB[index];
             icChOddMeanEB_[currentRing] += icChOddEB[index];
-            pn > 0 ? E_p[pn] += ebXstals_[index].GetSumEt(0) : E_m[-pn] += ebXstals_[index].GetSumEt(0);  //  Sum of the energy in the harness
+
         }
     }
     //---compute normalization EB 
@@ -346,6 +590,10 @@ void ComputeICs()
             outFile_->eb_xstals.iphi = ebXstal.iphi();
             outFile_->eb_xstals.k_ch = GetChannelKfactor(index, 0).first;
             outFile_->eb_xstals.k_ch_err = GetChannelKfactor(index, 0).second;
+            outFile_->eb_xstals.k_hr = GetHarnessKfactor(index).first;
+            outFile_->eb_xstals.k_hr_err = GetHarnessKfactor(index).second;
+            outFile_->eb_xstals.k_5x5 = Get5x5Kfactor(index).first;
+            outFile_->eb_xstals.k_5x5_err = Get5x5Kfactor(index).second;
             outFile_->eb_xstals.ring_average = ebRingsSumEt_[currentRing][0];
             outFile_->eb_xstals.ring_average_uncleaned = ebRingsSumEtUncut_[currentRing];
             outFile_->eb_xstals.eflow_wnorm = BarrelSumEtWeight_;
@@ -353,12 +601,10 @@ void ComputeICs()
             outFile_->eb_xstals.ic_old = ebOldICs_[currentRing][ebXstal.iphi()];
             outFile_->eb_xstals.ic_abs = ebAbsICs_[currentRing][ebXstal.iphi()]/icAbsChMeanEB_[currentRing];
             outFile_->eb_xstals.ic_eflow = icChEflow[index]/icChMeanEflow_; //eflow
-            //outFile_->eb_xstals.ic_eflow = icChEflow[index]/icChMeanEB_[currentRing]; //eflow
-            int pn = WhichPN(ebXstal.ieta(), ebXstal.iphi());   //
-            float n_XStals = 200;
-            if (fabs(ebXstal.ieta()) < 6 ) n_XStals = 100; 
-            pn > 0 ? outFile_->eb_xstals.ic_eflow_hr= avg_p[pn]/(n_XStals*icChMeanEflow_) : outFile_->eb_xstals.ic_eflow_hr= avg_m[-pn]/(n_XStals*icChMeanEflow_);  //mean ic in harness
-            pn > 0 ? outFile_->eb_xstals.ic_eflow_Ehr= avgE_p[pn]/(E_p[pn]*icChMeanEflow_) : outFile_->eb_xstals.ic_eflow_Ehr= avgE_m[-pn]/(E_m[-pn]*icChMeanEflow_);  //average mean of ic in harness
+            outFile_->eb_xstals.ic_hr_eflow = ic5x5Eflow[index]/icChMeanEflow_; //eflow
+            outFile_->eb_xstals.ic_5x5_eflow = icHrEflow[index]/icChMeanEflow_; //eflow
+
+   
             outFile_->eb_xstals.ic_ch_err = ebICChErr_[index]/(ebRingsSumEt_[currentRing][0]*outFile_->eb_xstals.k_ch);
             outFile_->eb_xstals.ic_ch_err = outFile_->eb_xstals.ic_ch_err/pow(outFile_->eb_xstals.ic_ch, 2);
             outFile_->eb_xstals.ic_err_sys = ebOldICsErr_[currentRing][ebXstal.iphi()];
@@ -578,6 +824,19 @@ int main( int argc, char *argv[] )
     thisBlkSumMeanZ_=0;
     thisBlkSumSigmaZ_=0;
 
+    hrMap_ = doHrVectorIndex(); //compute Hr map, necessary to calculate quantities for Harnesses, eg k_hr and 
+    x5Map_ = do5x5VectorIndex(); //compute 5x5 map, necessary to calculate quantities for Harnesses, eg 5x5_hr and 
+ /*   for (std::map<int,vector<uint32_t>>::iterator i=hrMap_.begin();i!=hrMap_.end(); i++)
+    {
+       for(unsigned int j=0; j<(*i).second.size(); j++)
+       {
+       EBDetId ebXstal = EBDetId::detIdFromDenseIndex((*i).second.at(j));
+       cout << "Number harness "<<(*i).first<< endl; 
+       cout << "1D index "<<(*i).second.at(j)<< endl; 
+       cout << "eta "<<ebXstal.ieta() <<"  phi " << ebXstal.iphi() << endl; 
+       }
+    }
+*/
     //-----get the python configuration-----
     //auto process = edm::readConfig(argv[1], argc, argv); //9_4_0 compatibility
     auto process = edm::boost_python::readConfig(argv[1], argc, argv); //10_5_0 compatibility
@@ -671,7 +930,7 @@ int main( int argc, char *argv[] )
     oldICsFiles = filesOpt.getParameter<vector<string> >("oldConstantsFiles");
     ReadAbsICs(filesOpt.getParameter<string>("recoConstantsFile"));
 
-    for(int iIOV=startingIOV; iIOV<startingIOV+nIOVs; ++iIOV)
+    for(int iIOV=startingIOV; iIOV<startingIOV+nIOVs; ++iIOV) //LOOP on IOV
     {
         if(iovInputFiles[iIOV].size() == 0)
             continue;
@@ -1027,6 +1286,7 @@ int main( int argc, char *argv[] )
             }
         }
         
+
         //---compute k-fact and ICs for this IOV
         ComputeICs();
 
