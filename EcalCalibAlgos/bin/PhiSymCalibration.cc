@@ -385,7 +385,7 @@ pair<float, float> GetChannelKfactor(int index, int sub_det)
 }
 
 //----------return the harness based k-factor for EB ----------------------
-pair<float, float> GetHarnessKfactor(int index)
+pair<float, float> GetHrKfactor(int index)
 {
     if(!kFactorsComputed_)
         ComputeKfactors();
@@ -513,6 +513,34 @@ void ComputeICs()
 
     }*/
 
+           float sumEt5x5[EBDetId::kSizeForDenseIndexing];
+           float sumEtHr[EBDetId::kSizeForDenseIndexing];
+//----- troppi loop, c'è sicuramente un modo più veloce
+        for (std::map<int,vector<uint32_t>>::iterator index_hr=hrMap_.begin();index_hr!=hrMap_.end(); index_hr++)
+        {
+           for (uint32_t index =0; index< (*index_hr).second.size(); ++index)
+           {
+           sumEtHr[(*index_hr).second.at(0)] += ebXstals_[index].GetSumEt(0);
+           }
+           for (uint32_t  index =0; index< (*index_hr).second.size(); ++index)
+           {
+           sumEtHr[index] = sumEtHr[(*index_hr).second.at(0)];
+           }
+
+        }
+
+        for (std::map<int,vector<uint32_t>>::iterator index_x5=x5Map_.begin();index_x5!=x5Map_.end(); index_x5++)
+        {
+           for (uint32_t  index =0; index< (*index_x5).second.size(); ++index)
+           {
+           sumEt5x5[(*index_x5).second.at(0)] += ebXstals_[index].GetSumEt(0);
+           }
+           for (uint32_t  index =0; index< (*index_x5).second.size(); ++index)
+           {
+           sumEt5x5[index] = sumEt5x5[(*index_x5).second.at(0)];
+           }
+
+        }
     //---loop over the EB channels and compute the ICs
     for(uint32_t index=0; index<EBDetId::kSizeForDenseIndexing; ++index)
     {
@@ -526,8 +554,10 @@ void ComputeICs()
                                ebRingsSumEtOdd_[currentRing]-1)/GetChannelKfactor(index, 0).first+1);
         icChEflow[index] = 1/((ebXstals_[index].GetSumEt(0)/
                            BarrelSumEtWeight_-1)/GetChannelKfactor(index, 0).first+1);
-        icHrEflow[index] = 1; //to be implemented
-        ic5x5Eflow[index] = 1;  // to be implemented
+        icHrEflow[index] = 1/((sumEtHr[index]/
+                           BarrelSumEtWeight_-1)/GetHrKfactor(index).first+1);   
+        ic5x5Eflow[index] = 1/((sumEt5x5[index]/
+                           BarrelSumEtWeight_-1)/Get5x5Kfactor(index).first+1); 
        
                            
         if(currentRing != -1 && goodXstalsEB_[currentRing][ebXstal.iphi()][0])
@@ -538,6 +568,10 @@ void ComputeICs()
 
         }
     }
+
+
+
+
     //---compute normalization EB 
     float nGoodInEB_=0; // good crystals in the all Barrel
     for(int iRing=0; iRing<kNRingsEB; ++iRing)
@@ -590,8 +624,8 @@ void ComputeICs()
             outFile_->eb_xstals.iphi = ebXstal.iphi();
             outFile_->eb_xstals.k_ch = GetChannelKfactor(index, 0).first;
             outFile_->eb_xstals.k_ch_err = GetChannelKfactor(index, 0).second;
-            outFile_->eb_xstals.k_hr = GetHarnessKfactor(index).first;
-            outFile_->eb_xstals.k_hr_err = GetHarnessKfactor(index).second;
+            outFile_->eb_xstals.k_hr = GetHrKfactor(index).first;
+            outFile_->eb_xstals.k_hr_err = GetHrKfactor(index).second;
             outFile_->eb_xstals.k_5x5 = Get5x5Kfactor(index).first;
             outFile_->eb_xstals.k_5x5_err = Get5x5Kfactor(index).second;
             outFile_->eb_xstals.ring_average = ebRingsSumEt_[currentRing][0];
