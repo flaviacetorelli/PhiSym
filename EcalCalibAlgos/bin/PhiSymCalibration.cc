@@ -97,6 +97,8 @@ double kFactors5x5ErrEB_[EBDetId::kSizeForDenseIndexing];
 double kFactorsHrEB_[EBDetId::kSizeForDenseIndexing];
 double kFactorsHrErrEB_[EBDetId::kSizeForDenseIndexing];
 double ebICChErr_[EBDetId::kSizeForDenseIndexing]={0};
+double ebIC5x5Err_[EBDetId::kSizeForDenseIndexing]={0};
+double ebICHrErr_[EBDetId::kSizeForDenseIndexing]={0};
 float  icChMeanEB_[kNRingsEB];
 float  icChMeanEflow_;
 float  icChEvenMeanEB_[kNRingsEB];
@@ -172,7 +174,7 @@ std::map<int,vector<uint32_t>> doHrVectorIndex() // compute a map of vectors, ea
                 cout << "eta "<<ebXstal.ieta() <<"  phi " << ebXstal.iphi() << endl; 
             
 	    }*/
-            channels.insert(make_pair(-(19+kphi+36*keta),indexes_n));
+            channels.insert(make_pair(36+kphi+36*keta,indexes_n));
             channels.insert(make_pair(19+kphi+36*keta,indexes_p));
         }
     }
@@ -210,8 +212,8 @@ std::map<int,vector<uint32_t>> doHrVectorIndex() // compute a map of vectors, ea
                 cout << "eta "<<ebXstal.ieta() <<"  phi " << ebXstal.iphi() << endl; 
             
 	    }*/
-        channels.insert(make_pair((-1-kphi),indexes_n));
-        channels.insert(make_pair(1+kphi,indexes_p));
+        channels.insert(make_pair(1+kphi,indexes_n));
+        channels.insert(make_pair(19+kphi,indexes_p));
     }
    return channels; 
 }
@@ -261,6 +263,35 @@ std::map<int,vector<uint32_t>> do5x5VectorIndex() // compute a map of vectors, e
    return channels; 
 }
 
+int Get5x5(int ieta, int iphi)
+{
+    int x5;
+    int keta = (abs(ieta) -1) / 5;
+    int kphi = (iphi -1) / 5;
+    ieta > 0 ? x5 = 1+kphi+72*keta :  x5 = -( 1+kphi+72*keta );
+    return x5;
+}
+
+int GetHr(int ieta, int iphi)
+{
+    int hr;
+    int keta;
+    int kphi; 
+    if (abs(ieta <= 5))
+    {
+        kphi = (iphi -1) / 20;
+        ieta > 0 ? hr =1+kphi :  hr = -( 1+kphi);
+        return hr;
+    }
+    else 
+    { 
+        keta =  1+ (abs(ieta)-6) /20;
+        kphi = (iphi -1) / 10;
+        ieta > 0 ? hr = 19+kphi+36*keta :  hr = -( 19+kphi+36*keta);
+        return hr;
+    }
+        
+}
 
 void ComputeKfactors() // computes only channel based k-factor
 {
@@ -319,34 +350,49 @@ void ComputeKfactors(vector<uint32_t> & channels) //computes k-factors channel, 
     TGraphErrors* kFactorGraph = new TGraphErrors();
     //channels.at(0)==1 ? kFactFitFunc->SetParameter(0,1) : kFactFitFunc->SetParameter(0,kFactorsChEB_[channels.at(0)-1]); // Error to be implemented
     //---EB---
-    //---channel-based k-factors
 
-    //ebICChErr_[index]=sqrt(ebXstals_[index].GetSumEt2()/ebXstals_[index].GetNhits()-
-     //                      pow(ebXstals_[index].GetSumEt()/ebXstals_[index].GetNhits(), 2));
-    //float error = ebICChErr_[index]/ebXstals_[index].GetSumEt(0);
+    double ebICErr = 0.; 
     for(int iMis=0; iMis<nMisCalib_; ++iMis)
     {
         float point = 0.; 
         float SumEtMis = 0.; 
         float SumEt = 0.; 
+        float SumEt2 = 0.;
         float error = 0.;
         float p_error = 0.; 
-
-        for (unsigned i = 0 ; i< channels.size(); i++)
+        if (channels.size()==1) // if I only have to calculate 1 channel, the error is the RMS of the E distributions of the single hit
         {
-           uint32_t index = channels.at(i);
-           ebICChErr_[index]=sqrt(ebXstals_[index].GetSumEt2()/ebXstals_[index].GetNhits()-
+            uint32_t index = channels.at(0);
+            ebICChErr_[index]=sqrt(ebXstals_[index].GetSumEt2()/ebXstals_[index].GetNhits()-
                            pow(ebXstals_[index].GetSumEt()/ebXstals_[index].GetNhits(), 2));
-           error = ebICChErr_[index]/ebXstals_[index].GetSumEt(0);
-           SumEtMis+= ebXstals_[index].GetSumEt(iMis); 
-           SumEt+=          ebXstals_[index].GetSumEt(0);
-           p_error = error*sqrt(pow(point, 2)+1);
+            error = ebICChErr_[index]/ebXstals_[index].GetSumEt(0);
+
+            point = ebXstals_[index].GetSumEt(iMis)/ebXstals_[index].GetSumEt(0) - 1;
+            p_error = error*sqrt(pow(point, 2)+1);
+
+
         }
+        else // else the error is the RMS of the E distributions of channel in the the matrix
+        { 
+            for (unsigned i = 0 ; i< channels.size(); i++)
+            {
+                uint32_t index = channels.at(i);
+
+                SumEtMis+= ebXstals_[index].GetSumEt(iMis); 
+                SumEt+=          ebXstals_[index].GetSumEt(0);
+                SumEt2 += ebXstals_[index].GetSumEt2(); 
+            }    
+        ebICErr= sqrt( SumEt2/channels.size() - pow (SumEt/channels.size(),2) );
+        error = ebICErr/SumEt;
         point = SumEtMis/SumEt;  
+        p_error = error*sqrt(pow(point, 2)+1);
+        }
+
         kFactorGraph->SetPoint(iMis, misCalibValuesEB_->at(iMis)-1, point-1);
         kFactorGraph->SetPointError(iMis, 0, p_error);
     }
     kFactorGraph->Fit(kFactFitFunc, "Q");
+
     for (unsigned i = 0 ; i< channels.size(); i++)
     {
       uint32_t index = channels.at(i);
@@ -359,9 +405,11 @@ void ComputeKfactors(vector<uint32_t> & channels) //computes k-factors channel, 
       {
       kFactors5x5EB_[index]=kFactorGraph->GetFunction("kFFF")->GetParameter(0);
       kFactors5x5ErrEB_[index]=kFactorGraph->GetFunction("kFFF")->GetParError(0);
+      ebIC5x5Err_[index] = ebICErr;
       }
       else if (channels.size()==200 || channels.size()==100 ) //k-factor harness
       {
+      ebICHrErr_[index] = ebICErr;
       kFactorsHrEB_[index]=kFactorGraph->GetFunction("kFFF")->GetParameter(0);
       kFactorsHrErrEB_[index]=kFactorGraph->GetFunction("kFFF")->GetParError(0);
       }
@@ -489,9 +537,9 @@ void ComputeICs()
          
    }
 
-  for (std::map<int,vector<uint32_t>>::iterator index=hrMap_.begin();index!=hrMap_.end(); index++)
+  for (auto& hr : hrMap_)
   {
-       ComputeKfactors((*index).second); 
+       ComputeKfactors(hr.second); 
        
    }
   /*  for(uint32_t index=0; index<EBDetId::kSizeForDenseIndexing; ++index)
@@ -501,9 +549,9 @@ void ComputeICs()
 
     }*/
 
-  for (std::map<int,vector<uint32_t>>::iterator index=x5Map_.begin();index!=x5Map_.end(); index++)
+  for (auto& x5 : x5Map_)
   {
-       ComputeKfactors((*index).second); 
+       ComputeKfactors(x5.second); 
        
    }
   /*  for(uint32_t index=0; index<EBDetId::kSizeForDenseIndexing; ++index)
@@ -513,34 +561,21 @@ void ComputeICs()
 
     }*/
 
-           float sumEt5x5[EBDetId::kSizeForDenseIndexing];
-           float sumEtHr[EBDetId::kSizeForDenseIndexing];
-//----- troppi loop, c'è sicuramente un modo più veloce
-        for (std::map<int,vector<uint32_t>>::iterator index_hr=hrMap_.begin();index_hr!=hrMap_.end(); index_hr++)
-        {
-           for (uint32_t index =0; index< (*index_hr).second.size(); ++index)
-           {
-           sumEtHr[(*index_hr).second.at(0)] += ebXstals_[index].GetSumEt(0);
-           }
-           for (uint32_t  index =0; index< (*index_hr).second.size(); ++index)
-           {
-           sumEtHr[index] = sumEtHr[(*index_hr).second.at(0)];
-           }
 
+//----- loop to calculate sum of energy over matrix or harness
+        float sumEt5x5[2448];
+        float sumEtHr[324];
+        for(auto& hr : hrMap_)
+        {
+            for(auto& index : hr.second)
+                 sumEtHr[hr.first] += ebXstals_[index].GetSumEt(0);
+        }
+        for(auto& x5 : x5Map_)
+        {
+            for(auto& index : x5.second)
+                 sumEt5x5[x5.first] += ebXstals_[index].GetSumEt(0);
         }
 
-        for (std::map<int,vector<uint32_t>>::iterator index_x5=x5Map_.begin();index_x5!=x5Map_.end(); index_x5++)
-        {
-           for (uint32_t  index =0; index< (*index_x5).second.size(); ++index)
-           {
-           sumEt5x5[(*index_x5).second.at(0)] += ebXstals_[index].GetSumEt(0);
-           }
-           for (uint32_t  index =0; index< (*index_x5).second.size(); ++index)
-           {
-           sumEt5x5[index] = sumEt5x5[(*index_x5).second.at(0)];
-           }
-
-        }
     //---loop over the EB channels and compute the ICs
     for(uint32_t index=0; index<EBDetId::kSizeForDenseIndexing; ++index)
     {
@@ -554,9 +589,9 @@ void ComputeICs()
                                ebRingsSumEtOdd_[currentRing]-1)/GetChannelKfactor(index, 0).first+1);
         icChEflow[index] = 1/((ebXstals_[index].GetSumEt(0)/
                            BarrelSumEtWeight_-1)/GetChannelKfactor(index, 0).first+1);
-        icHrEflow[index] = 1/((sumEtHr[index]/
+        icHrEflow[index] = 1/((sumEtHr[Getx5(ebXstal.ieta(),ebXstal.iphi())]/
                            BarrelSumEtWeight_-1)/GetHrKfactor(index).first+1);   
-        ic5x5Eflow[index] = 1/((sumEt5x5[index]/
+        ic5x5Eflow[index] = 1/((sumEt5x5[Getx5(ebXstal.ieta(),ebXstal.iphi())]/
                            BarrelSumEtWeight_-1)/Get5x5Kfactor(index).first+1); 
        
                            
