@@ -16,7 +16,7 @@
 
 #include "FWCore/FWLite/interface/FWLiteEnabler.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "FWCore/PythonParameterSet/interface/MakeParameterSets.h"
+#include "FWCore/PythonParameterSet/interface/MakePyBind11ParameterSets.h"
 #include "FWCore/ParameterSet/interface/ProcessDesc.h"
 
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
@@ -440,7 +440,7 @@ void ComputeICs()
 
 
     //--- compute EB weighted average for eflow (weighetd sum of the average sum of the ring )
-    TFile *f = new TFile("/afs/cern.ch/work/f/fcetorel/private/work2/EFlow/CMSSW_10_5_0/src/PhiSym/EcalCalibAlgos/weight.root"); //file with the weight, generated from reweight.cpp
+    TFile *f = new TFile("/afs/cern.ch/work/f/fcetorel/private/work2/Eflow_2/CMSSW_10_6_1/src/PhiSym/EcalCalibAlgos/weight.root"); //file with the weight, generated from reweight.cpp
     TH1F * weight_histo = (TH1F*)f->Get("weight_histo");
 
     for(int iRing=0; iRing<kNRingsEB; ++iRing)
@@ -873,7 +873,7 @@ int main( int argc, char *argv[] )
 */
     //-----get the python configuration-----
     //auto process = edm::readConfig(argv[1], argc, argv); //9_4_0 compatibility
-    auto process = edm::boost_python::readConfig(argv[1], argc, argv); //10_5_0 compatibility
+    auto process = edm::cmspybind11::readConfig(argv[1], argc, argv); //10_6_1 compatibility
     const edm::ParameterSet &filesOpt = process->getParameter<edm::ParameterSet>("ioFilesOpt");
     const edm::ParameterSet &IOVBounds = process->getParameter<edm::ParameterSet>("IOVBounds");
 

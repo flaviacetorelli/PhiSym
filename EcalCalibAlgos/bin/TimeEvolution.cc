@@ -17,7 +17,7 @@
 
 #include "FWCore/FWLite/interface/FWLiteEnabler.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "FWCore/PythonParameterSet/interface/MakeParameterSets.h"
+#include "FWCore/PythonParameterSet/interface/MakePyBind11ParameterSets.h"
 
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "DataFormats/EcalDetId/interface/EEDetId.h"
@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
     }
 
     //if(!edm::readPSetsFrom(argv[1])->existsAs<edm::ParameterSet>("process")) // 9_4_0 compatibility
-    if(!edm::boost_python::readPSetsFrom(argv[1])->existsAs<edm::ParameterSet>("process")) //10_5_0 compatibility
+    if(!edm::cmspybind11::readPSetsFrom(argv[1])->existsAs<edm::ParameterSet>("process")) //10_6_1 compatibility
     {
         cout << " ERROR: ParametersSet 'process' is missing in your configuration file"
              << endl;
@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
     
     //---get the python configuration
     //const edm::ParameterSet &process = edm::readPSetsFrom(argv[1])->getParameter<edm::ParameterSet>("process");    // 9_4_0 compatibility
-    const edm::ParameterSet &process = edm::boost_python::readPSetsFrom(argv[1])->getParameter<edm::ParameterSet>("process");   //10_5_0 compatibility 
+    const edm::ParameterSet &process = edm::cmspybind11::readPSetsFrom(argv[1])->getParameter<edm::ParameterSet>("process");   //10_6_1 compatibility 
     bool absoluteICs = process.getParameter<bool>("absoluteICs");
     bool applyCorr = process.getParameter<bool >("applyCorrections");
     vector<string> types = process.getParameter<vector<string> >("variables");
