@@ -12,6 +12,7 @@
 #include "TTree.h"
 #include "TH1F.h"
 #include "TF1.h"
+#include "TCanvas.h"
 #include "TGraphErrors.h"
 
 #include "FWCore/FWLite/interface/FWLiteEnabler.h"
@@ -21,6 +22,7 @@
 
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "DataFormats/EcalDetId/interface/EEDetId.h"
+#include "DataFormats/EcalDetId/interface/EcalTrigTowerDetId.h"
 
 #include "Calibration/Tools/interface/EcalRingCalibrationTools.h"
 
@@ -92,13 +94,13 @@ float  nGoodInRingEB_[kNRingsEB][11];
 //double kFactorsChErrEB_[EBDetId::kSizeForDenseIndexing];
 double kFactorsChEB_[EBDetId::kSizeForDenseIndexing];
 double kFactorsChErrEB_[EBDetId::kSizeForDenseIndexing];
-double kFactors5x5EB_[EBDetId::kSizeForDenseIndexing];
-double kFactors5x5ErrEB_[EBDetId::kSizeForDenseIndexing];
-double kFactorsHrEB_[EBDetId::kSizeForDenseIndexing];
-double kFactorsHrErrEB_[EBDetId::kSizeForDenseIndexing];
+double kFactors5x5EB_[EcalTrigTowerDetId::kEBTotalTowers];
+double kFactors5x5ErrEB_[EcalTrigTowerDetId::kEBTotalTowers];
+double kFactorsHrEB_[324];
+double kFactorsHrErrEB_[324];
 double ebICChErr_[EBDetId::kSizeForDenseIndexing]={0};
-double ebIC5x5Err_[EBDetId::kSizeForDenseIndexing]={0};
-double ebICHrErr_[EBDetId::kSizeForDenseIndexing]={0};
+double ebIC5x5Err_[EcalTrigTowerDetId::kEBTotalTowers]={0};
+double ebICHrErr_[324]={0};
 float  icChMeanEB_[kNRingsEB];
 float  icChMeanEflow_;
 float  icChEvenMeanEB_[kNRingsEB];
@@ -174,8 +176,8 @@ std::map<int,vector<uint32_t>> doHrVectorIndex() // compute a map of vectors, ea
                 cout << "eta "<<ebXstal.ieta() <<"  phi " << ebXstal.iphi() << endl; 
             
 	    }*/
-            channels.insert(make_pair(36+kphi+36*keta,indexes_n));
-            channels.insert(make_pair(19+kphi+36*keta,indexes_p));
+            channels.insert(make_pair(37+kphi+36*keta,indexes_n));
+            channels.insert(make_pair(181+kphi+36*keta,indexes_p));
         }
     }
 
@@ -254,21 +256,21 @@ std::map<int,vector<uint32_t>> do5x5VectorIndex() // compute a map of vectors, e
                 cout << "eta "<<ebXstal.ieta() <<"  phi " << ebXstal.iphi() << endl; 
             
 	    }*/
-            channels.insert(make_pair(-(1+kphi+72*keta),indexes_n));
-            channels.insert(make_pair(1+kphi+72*keta,indexes_p));
+            channels.insert(make_pair(1+kphi+72*keta,indexes_n));
+            channels.insert(make_pair(1225+kphi+72*keta,indexes_p));
         }
     }
 
   
    return channels; 
 }
-
+// ----- returns the number id of the harness/tower from ieta,iphi of the crystal
 int Get5x5(int ieta, int iphi)
 {
     int x5;
     int keta = (abs(ieta) -1) / 5;
     int kphi = (iphi -1) / 5;
-    ieta > 0 ? x5 = 1+kphi+72*keta :  x5 = -( 1+kphi+72*keta );
+    ieta > 0 ? x5 = 1225+kphi+72*keta :  x5 = 1+kphi+72*keta;
     return x5;
 }
 
@@ -277,17 +279,18 @@ int GetHr(int ieta, int iphi)
     int hr;
     int keta;
     int kphi; 
-    if (abs(ieta <= 5))
+    if (abs(ieta) <= 5)
     {
         kphi = (iphi -1) / 20;
-        ieta > 0 ? hr =1+kphi :  hr = -( 1+kphi);
+        ieta > 0 ? hr =19+kphi :  hr =  1+kphi;
         return hr;
     }
+
     else 
     { 
-        keta =  1+ (abs(ieta)-6) /20;
+        keta =  (abs(ieta)-6) /20;
         kphi = (iphi -1) / 10;
-        ieta > 0 ? hr = 19+kphi+36*keta :  hr = -( 19+kphi+36*keta);
+        ieta > 0 ? hr = 181+kphi+36*keta :  hr = 37+kphi+36*keta;
         return hr;
     }
         
@@ -295,6 +298,7 @@ int GetHr(int ieta, int iphi)
 
 void ComputeKfactors() // computes only channel based k-factor
 {
+
     TF1* kFactFitFunc = new TF1("kFFF", "[0]*x", -0.5, 0.5);
     kFactFitFunc->SetParameter(0, 1); 
     TGraphErrors* kFactorGraph = new TGraphErrors();
@@ -311,11 +315,13 @@ void ComputeKfactors() // computes only channel based k-factor
             float point = ebXstals_[index].GetSumEt(iMis)/ebXstals_[index].GetSumEt(0) - 1;
             float p_error = error*sqrt(pow(point, 2)+1);
             kFactorGraph->SetPoint(iMis, misCalibValuesEB_->at(iMis)-1, point);
-            kFactorGraph->SetPointError(iMis, 0, p_error);
+            kFactorGraph->SetPointError(iMis, 0, p_error); 
         }
         kFactorGraph->Fit(kFactFitFunc, "Q");
+
         kFactorsChEB_[index]=kFactorGraph->GetFunction("kFFF")->GetParameter(0);
         kFactorsChErrEB_[index]=kFactorGraph->GetFunction("kFFF")->GetParError(0);
+
     }
     //---EE---
     //---channel-based k-factors
@@ -346,11 +352,12 @@ void ComputeKfactors() // computes only channel based k-factor
 
 void ComputeKfactors(vector<uint32_t> & channels) //computes k-factors channel, 5x5, harness
 {
+
     TF1* kFactFitFunc = new TF1("kFFF", "[0]*x", -0.5, 0.5);
     TGraphErrors* kFactorGraph = new TGraphErrors();
-    //channels.at(0)==1 ? kFactFitFunc->SetParameter(0,1) : kFactFitFunc->SetParameter(0,kFactorsChEB_[channels.at(0)-1]); // Error to be implemented
+    kFactFitFunc->SetParameter(0,1);  // Inizialization on the fit to be implemented --> this cause some xstal having k=1
     //---EB---
-
+//---------
     double ebICErr = 0.; 
     for(int iMis=0; iMis<nMisCalib_; ++iMis)
     {
@@ -361,15 +368,15 @@ void ComputeKfactors(vector<uint32_t> & channels) //computes k-factors channel, 
         float error = 0.;
         float p_error = 0.; 
         if (channels.size()==1) // if I only have to calculate 1 channel, the error is the RMS of the E distributions of the single hit
-        {
-            uint32_t index = channels.at(0);
+        {           
+            uint32_t index = channels.at(0); // index form 0 to 61199
+            index == 0 ? kFactFitFunc->SetParameter(0,1) : kFactFitFunc->SetParameter(0,kFactorsChEB_[index-1]); //this should fix the inizialization
+            
             ebICChErr_[index]=sqrt(ebXstals_[index].GetSumEt2()/ebXstals_[index].GetNhits()-
-                           pow(ebXstals_[index].GetSumEt()/ebXstals_[index].GetNhits(), 2));
-            error = ebICChErr_[index]/ebXstals_[index].GetSumEt(0);
+                           pow(ebXstals_[index].GetSumEt()/ebXstals_[index].GetNhits(), 2)); //-
+            error = ebICChErr_[index]/ebXstals_[index].GetSumEt(0);//-
 
             point = ebXstals_[index].GetSumEt(iMis)/ebXstals_[index].GetSumEt(0) - 1;
-            p_error = error*sqrt(pow(point, 2)+1);
-
 
         }
         else // else the error is the RMS of the E distributions of channel in the the matrix
@@ -382,17 +389,54 @@ void ComputeKfactors(vector<uint32_t> & channels) //computes k-factors channel, 
                 SumEt+=          ebXstals_[index].GetSumEt(0);
                 SumEt2 += ebXstals_[index].GetSumEt2(); 
             }    
-        ebICErr= sqrt( SumEt2/channels.size() - pow (SumEt/channels.size(),2) );
-        error = ebICErr/SumEt;
-        point = SumEtMis/SumEt;  
-        p_error = error*sqrt(pow(point, 2)+1);
+            ebICErr= sqrt( SumEt2/channels.size() - pow (SumEt/channels.size(),2) );
+            error = ebICErr/SumEt;
+            point = SumEtMis/SumEt -1;  
+
+            EBDetId ebXstal = EBDetId::detIdFromDenseIndex(channels.at(0));
+            if (channels.size()==25)//this should fix the inizialization 
+            { 
+                int id_5x5 = Get5x5(ebXstal.ieta(), ebXstal.iphi());
+                id_5x5 == 1 ? kFactFitFunc->SetParameter(0,1) : kFactFitFunc->SetParameter(0,kFactors5x5EB_[id_5x5-1]);
+            }
+            else 
+            {
+                int id_hr = GetHr(ebXstal.ieta(), ebXstal.iphi());
+                id_hr == 1 ? kFactFitFunc->SetParameter(0,1) : kFactFitFunc->SetParameter(0,kFactorsHrEB_[id_hr-1]);
+            }
         }
 
-        kFactorGraph->SetPoint(iMis, misCalibValuesEB_->at(iMis)-1, point-1);
+        p_error = error*sqrt(pow(point, 2)+1);
+        kFactorGraph->SetPoint(iMis, misCalibValuesEB_->at(iMis)-1, point);
         kFactorGraph->SetPointError(iMis, 0, p_error);
     }
-    kFactorGraph->Fit(kFactFitFunc, "Q");
 
+
+     kFactorGraph->Fit(kFactFitFunc, "Q");
+
+      uint32_t index = channels.at(0);
+      EBDetId ebXstal = EBDetId::detIdFromDenseIndex(index);
+      if (channels.size()==1) // k-factor per channel
+      {
+      kFactorsChEB_[index]=kFactorGraph->GetFunction("kFFF")->GetParameter(0);
+      kFactorsChErrEB_[index]=kFactorGraph->GetFunction("kFFF")->GetParError(0);
+      }
+      else if (channels.size()==25) //k-factor 5x5 matrix
+      {
+      int id_5x5 = Get5x5(ebXstal.ieta(), ebXstal.iphi()); //from xstal to 5x5 id number
+      kFactors5x5EB_[id_5x5]=kFactorGraph->GetFunction("kFFF")->GetParameter(0);
+      kFactors5x5ErrEB_[id_5x5]=kFactorGraph->GetFunction("kFFF")->GetParError(0);
+      ebIC5x5Err_[id_5x5] = ebICErr;
+      }
+      else if (channels.size()==200 || channels.size()==100 ) //k-factor harness
+      {
+      int id_hr = GetHr(ebXstal.ieta(), ebXstal.iphi()); //from xstal to hr id number
+      ebICHrErr_[id_hr] = ebICErr;
+      kFactorsHrEB_[id_hr]=kFactorGraph->GetFunction("kFFF")->GetParameter(0);
+      kFactorsHrErrEB_[id_hr]=kFactorGraph->GetFunction("kFFF")->GetParError(0);
+      }
+    
+/*
     for (unsigned i = 0 ; i< channels.size(); i++)
     {
       uint32_t index = channels.at(i);
@@ -414,7 +458,7 @@ void ComputeKfactors(vector<uint32_t> & channels) //computes k-factors channel, 
       kFactorsHrErrEB_[index]=kFactorGraph->GetFunction("kFFF")->GetParError(0);
       }
     }
-
+*/
     kFactFitFunc->Delete();
     kFactorGraph->Delete();
     kFactorsComputed_=true;
@@ -424,8 +468,8 @@ void ComputeKfactors(vector<uint32_t> & channels) //computes k-factors channel, 
 //----------return the channel-based k-factor --- sub_det: 0->EB, 1->EE-------------------
 pair<float, float> GetChannelKfactor(int index, int sub_det)
 {
-    if(!kFactorsComputed_)
-        ComputeKfactors();
+    //if(!kFactorsComputed_)
+    //   ComputeKfactors();
     if(sub_det == 0)
         return make_pair(kFactorsChEB_[index], kFactorsChErrEB_[index]);
     else
@@ -435,15 +479,11 @@ pair<float, float> GetChannelKfactor(int index, int sub_det)
 //----------return the harness based k-factor for EB ----------------------
 pair<float, float> GetHrKfactor(int index)
 {
-    if(!kFactorsComputed_)
-        ComputeKfactors();
     return make_pair(kFactorsHrEB_[index], kFactorsHrErrEB_[index]);
 }
 //----------return the 5x5 based k-factor for EB ----------------------
 pair<float, float> Get5x5Kfactor(int index)
 {
-    if(!kFactorsComputed_)
-        ComputeKfactors();
     return make_pair(kFactors5x5EB_[index], kFactors5x5ErrEB_[index]);
 }
 
@@ -528,15 +568,16 @@ void ComputeICs()
     }
    //ComputeKfactors();
 //---- Compute K-Factors (ch, harness, 5x5) ------------------
-
+   cout << ">>>>> ComputeKfactors(channels)" << endl;
    for(uint32_t index=0; index<EBDetId::kSizeForDenseIndexing; ++index)
    {
        vector<uint32_t>channels_ch;  // kFactor per ch
        channels_ch.push_back(index);
        ComputeKfactors(channels_ch); 
+       
          
    }
-
+  //ComputeKfactors();
   for (auto& hr : hrMap_)
   {
        ComputeKfactors(hr.second); 
@@ -563,23 +604,31 @@ void ComputeICs()
 
 
 //----- loop to calculate sum of energy over matrix or harness
-        float sumEt5x5[2448];
+        float sumEt5x5[EcalTrigTowerDetId::kEBTotalTowers];
         float sumEtHr[324];
         for(auto& hr : hrMap_)
         {
             for(auto& index : hr.second)
+            {
                  sumEtHr[hr.first] += ebXstals_[index].GetSumEt(0);
+            }
+            sumEtHr[hr.first]= sumEtHr[hr.first]/hr.second.size();
         }
         for(auto& x5 : x5Map_)
         {
             for(auto& index : x5.second)
+            {             
                  sumEt5x5[x5.first] += ebXstals_[index].GetSumEt(0);
+            }
+            sumEt5x5[x5.first]= sumEt5x5[x5.first]/x5.second.size();
         }
 
     //---loop over the EB channels and compute the ICs
     for(uint32_t index=0; index<EBDetId::kSizeForDenseIndexing; ++index)
     {
         EBDetId ebXstal = EBDetId::detIdFromDenseIndex(index);
+        int id_5x5 = Get5x5(ebXstal.ieta(),ebXstal.iphi());
+        int id_hr = GetHr(ebXstal.ieta(),ebXstal.iphi());
         int currentRing = ebRingsMap_[index];
         icChEB[index] = 1/((ebXstals_[index].GetSumEt(0)/
                             ebRingsSumEt_[currentRing][0]-1)/GetChannelKfactor(index, 0).first+1);
@@ -589,10 +638,10 @@ void ComputeICs()
                                ebRingsSumEtOdd_[currentRing]-1)/GetChannelKfactor(index, 0).first+1);
         icChEflow[index] = 1/((ebXstals_[index].GetSumEt(0)/
                            BarrelSumEtWeight_-1)/GetChannelKfactor(index, 0).first+1);
-        icHrEflow[index] = 1/((sumEtHr[Getx5(ebXstal.ieta(),ebXstal.iphi())]/
-                           BarrelSumEtWeight_-1)/GetHrKfactor(index).first+1);   
-        ic5x5Eflow[index] = 1/((sumEt5x5[Getx5(ebXstal.ieta(),ebXstal.iphi())]/
-                           BarrelSumEtWeight_-1)/Get5x5Kfactor(index).first+1); 
+        icHrEflow[index] = 1/((sumEtHr[id_hr]/
+                           BarrelSumEtWeight_-1)/GetHrKfactor(id_hr).first+1);   
+        ic5x5Eflow[index] = 1/((sumEt5x5[id_5x5]/
+                           BarrelSumEtWeight_-1)/Get5x5Kfactor(id_5x5).first+1); 
        
                            
         if(currentRing != -1 && goodXstalsEB_[currentRing][ebXstal.iphi()][0])
@@ -640,6 +689,8 @@ void ComputeICs()
     for(uint32_t index=0; index<EBDetId::kSizeForDenseIndexing; ++index)
     {
         EBDetId ebXstal = EBDetId::detIdFromDenseIndex(index);
+        int id_5x5 =Get5x5(ebXstal.ieta(),ebXstal.iphi());
+        int id_hr = GetHr(ebXstal.ieta(),ebXstal.iphi());
         int currentRing = ebRingsMap_[index];
         if(currentRing > -1)
         { 
@@ -659,10 +710,10 @@ void ComputeICs()
             outFile_->eb_xstals.iphi = ebXstal.iphi();
             outFile_->eb_xstals.k_ch = GetChannelKfactor(index, 0).first;
             outFile_->eb_xstals.k_ch_err = GetChannelKfactor(index, 0).second;
-            outFile_->eb_xstals.k_hr = GetHrKfactor(index).first;
-            outFile_->eb_xstals.k_hr_err = GetHrKfactor(index).second;
-            outFile_->eb_xstals.k_5x5 = Get5x5Kfactor(index).first;
-            outFile_->eb_xstals.k_5x5_err = Get5x5Kfactor(index).second;
+            outFile_->eb_xstals.k_hr = GetHrKfactor(id_hr).first; //eflow
+            outFile_->eb_xstals.k_hr_err = GetHrKfactor(id_hr).second; //eflow
+            outFile_->eb_xstals.k_5x5 = Get5x5Kfactor(id_5x5).first; //eflow
+            outFile_->eb_xstals.k_5x5_err = Get5x5Kfactor(id_5x5).second; //eflow
             outFile_->eb_xstals.ring_average = ebRingsSumEt_[currentRing][0];
             outFile_->eb_xstals.ring_average_uncleaned = ebRingsSumEtUncut_[currentRing];
             outFile_->eb_xstals.eflow_wnorm = BarrelSumEtWeight_;
@@ -895,17 +946,38 @@ int main( int argc, char *argv[] )
 
     hrMap_ = doHrVectorIndex(); //compute Hr map, necessary to calculate quantities for Harnesses, eg k_hr and 
     x5Map_ = do5x5VectorIndex(); //compute 5x5 map, necessary to calculate quantities for Harnesses, eg 5x5_hr and 
- /*   for (std::map<int,vector<uint32_t>>::iterator i=hrMap_.begin();i!=hrMap_.end(); i++)
+
+/*    for(auto& hr : hrMap_) //decomment to check if the number of harness/5x5 id is treated correctly
     {
-       for(unsigned int j=0; j<(*i).second.size(); j++)
-       {
-       EBDetId ebXstal = EBDetId::detIdFromDenseIndex((*i).second.at(j));
-       cout << "Number harness "<<(*i).first<< endl; 
-       cout << "1D index "<<(*i).second.at(j)<< endl; 
-       cout << "eta "<<ebXstal.ieta() <<"  phi " << ebXstal.iphi() << endl; 
-       }
-    }
-*/
+        for(auto& index : hr.second)
+        {
+            EBDetId ebXstal = EBDetId::detIdFromDenseIndex(index);
+            if(hr.first != GetHr(ebXstal.ieta(),ebXstal.iphi())) 
+            {
+               cout << "------ No match, check the Get function! -----" << endl;
+               cout << "Number harness "<< hr.first << endl; 
+            //cout << "1D index "<< index << endl; 
+               cout << "eta "<<ebXstal.ieta() <<"  phi " << ebXstal.iphi() << endl; 
+               cout << "harness check " << GetHr(ebXstal.ieta(),ebXstal.iphi()) << endl;
+             }
+        }
+     }
+    for(auto& hr : x5Map_)
+    {
+        for(auto& index : hr.second)
+        {
+            EBDetId ebXstal = EBDetId::detIdFromDenseIndex(index);
+            if(hr.first != Get5x5(ebXstal.ieta(),ebXstal.iphi())) 
+            {
+               cout << "------ No match, check the Get function! -----" << endl;
+               cout << "Number harness "<< hr.first << endl; 
+            //cout << "1D index "<< index << endl; 
+               cout << "eta "<<ebXstal.ieta() <<"  phi " << ebXstal.iphi() << endl; 
+               cout << "harness check " << Get5x5(ebXstal.ieta(),ebXstal.iphi()) << endl;
+             }
+        }
+     }
+       */
     //-----get the python configuration-----
     //auto process = edm::readConfig(argv[1], argc, argv); //9_4_0 compatibility
     auto process = edm::cmspybind11::readConfig(argv[1], argc, argv); //10_6_1 compatibility
