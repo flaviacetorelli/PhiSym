@@ -55,11 +55,13 @@ void MakeHistoryTreesEB(std::vector<INT> eb_iovs, std::vector<INT> eb_even_iovs,
             eb_ratio->ring_average_uncleaned[iV-ref] = eb_iovs[iV]->ring_average_uncleaned; 
             eb_ratio->ic_ratio_abs[iV-ref] = eb_iovs[iV]->ic_ch/eb_iovs[ref]->ic_ch; 
             eb_ratio->ic_ratio_eflow[iV-ref] = eb_iovs[iV]->ic_eflow/eb_iovs[ref]->ic_eflow; // Eflow
-            eb_ratio->ic_ratio_eflow_hr[iV-ref] = eb_iovs[iV]->ic_eflow_hr/eb_iovs[ref]->ic_eflow_hr; // Eflow
-            eb_ratio->ic_ratio_eflow_Ehr[iV-ref] = eb_iovs[iV]->ic_eflow_hr/eb_iovs[ref]->ic_eflow_Ehr; // Eflow
+            eb_ratio->ic_hr_ratio_eflow[iV-ref] = eb_iovs[iV]->ic_hr_eflow/eb_iovs[ref]->ic_hr_eflow; // Eflow
+            eb_ratio->ic_5x5_ratio_eflow[iV-ref] = eb_iovs[iV]->ic_5x5_eflow/eb_iovs[ref]->ic_5x5_eflow; // Eflow
             eb_ratio->ic_ratio_rel[iV-ref] = eb_iovs[iV]->ic_ch/eb_iovs[iV==0?0:iV-1]->ic_ch; 
             eb_ratio->ic_precision[iV-ref] = eb_even_iovs[iV]->ic_ch/eb_odd_iovs[iV]->ic_ch; 
             eb_ratio->k_ratio_abs[iV-ref] = eb_iovs[iV]->k_ch/eb_iovs[ref]->k_ch; 
+            eb_ratio->k_hr_ratio_abs[iV-ref] = eb_iovs[iV]->k_hr/eb_iovs[ref]->k_hr;  //new k
+            eb_ratio->k_5x5_ratio_abs[iV-ref] = eb_iovs[iV]->k_5x5/eb_iovs[ref]->k_5x5; //new k
             eb_ratio->k_ratio_rel[iV-ref] = eb_iovs[iV]->k_ch/eb_iovs[iV==0?0:iV-1]->k_ch; 
             eb_ratio->mean_et_ratio[iV-ref] = (eb_iovs[iV]->rec_hit->GetSumEt()/eb_iovs[iV]->rec_hit->GetNhits())/(eb_iovs[ref]->rec_hit->GetSumEt()/eb_iovs[ref]->rec_hit->GetNhits()); 
             eb_ratio->eflow_pn_abs[iV-ref] = 1+((eb_iovs[iV]->rec_hit->GetSumEt()/etSumPN[eb_ratio->pn][iV])/(eb_iovs[ref]->rec_hit->GetSumEt()/etSumPN[eb_ratio->pn][ref])-1)/eb_iovs[iV]->k_ch; 
