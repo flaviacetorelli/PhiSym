@@ -43,7 +43,21 @@ def effective_sigma_2d(args, srcs):
             tmp.SetBinContent(ibin, effective_sigma(quantile, tmp_y))
         tmp_y.Delete()        
 
-    return tmp                               
+    return tmp 
+
+def mean_projection(args, srcs):
+    """Compute Mean of Y distribution as a function of X"""
+
+    tmp = srcs[args[0]].ProjectionX("tmp_x", 1, 2, "o")
+    tmp.Reset()
+    for ibin in range(1, srcs[args[0]].GetNbinsX()-1):
+        tmp_y = srcs[args[0]].ProjectionY("tmp_y", ibin, ibin, "eo")
+        if tmp_y.GetEntries() > 0:
+            tmp.SetBinContent(ibin, tmp_y.GetMean())
+            tmp.SetBinError(ibin, tmp_y.GetMeanError())
+        tmp_y.Delete()        
+
+    return tmp                                
 
 def rms_projection(args, srcs):
     """Compute RMS of Y distribution as a function of X"""
@@ -80,7 +94,7 @@ def make_graph_with_errors(args, srcs):
 
     return h_tmp
                           
-dictionary = dict(EffSigma=effective_sigma, EffSigma2D=effective_sigma_2d,
+dictionary = dict(EffSigma=effective_sigma, EffSigma2D=effective_sigma_2d,MeanProj=mean_projection,
                   RMSProj=rms_projection, RMSMap=rms_global_projection,
                   MakeHistoErrors=make_graph_with_errors)
 

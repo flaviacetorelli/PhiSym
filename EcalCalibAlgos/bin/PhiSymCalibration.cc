@@ -62,6 +62,7 @@ double eeOldICsErr_[EEDetId::IX_MAX+1][EEDetId::IY_MAX+1][2];
 float ebAbsICs_[kNRingsEB][361];
 float eeAbsICs_[EEDetId::IX_MAX+1][EEDetId::IY_MAX+1][2];
 //---ring based
+double BarrelSumEtWeight_;
 //---EB
 double ebRingsSumEt_[kNRingsEB][11];
 double ebRingsSumEtUncut_[kNRingsEB];
@@ -70,7 +71,6 @@ double ebRingsSumEtEven_[kNRingsEB]={0};
 double ebRingsSumEtOdd_[kNRingsEB]={0};
 double ebRingsSumEt2_[kNRingsEB]={0};
 float  ebSumEtCuts_[kNRingsEB][2];
-double BarrelSumEtWeight_;
 
 
 //---EE
@@ -82,6 +82,7 @@ double eeRingsSumEtOdd_[kNRingsEE]={0};
 double eeRingsSumEt2_[kNRingsEE]={0};
 float  eeSumEtCuts_[kNRingsEE][2];
 //---crystal based
+float  icChMeanEflow_;
 //---EB
 map<int, int> ebRingsMap_;
 PhiSymRecHit ebXstals_[EBDetId::kSizeForDenseIndexing];
@@ -90,8 +91,6 @@ PhiSymRecHit ebXstalsOdd_[EBDetId::kSizeForDenseIndexing];
 int chStatusEB_[EBDetId::kSizeForDenseIndexing];
 bool   goodXstalsEB_[kNRingsEB][361][11];
 float  nGoodInRingEB_[kNRingsEB][11];
-//double kFactorsChEB_[EBDetId::kSizeForDenseIndexing];
-//double kFactorsChErrEB_[EBDetId::kSizeForDenseIndexing];
 double kFactorsChEB_[EBDetId::kSizeForDenseIndexing];
 double kFactorsChErrEB_[EBDetId::kSizeForDenseIndexing];
 double kFactors5x5EB_[EcalTrigTowerDetId::kEBTotalTowers];
@@ -102,7 +101,6 @@ double ebICChErr_[EBDetId::kSizeForDenseIndexing]={0};
 double ebIC5x5Err_[EcalTrigTowerDetId::kEBTotalTowers]={0};
 double ebICHrErr_[324]={0};
 float  icChMeanEB_[kNRingsEB];
-float  icChMeanEflow_;
 float  icChEvenMeanEB_[kNRingsEB];
 float  icChOddMeanEB_[kNRingsEB];
 float  icAbsChMeanEB_[kNRingsEB];
@@ -492,12 +490,13 @@ void ComputeICs()
 {
 
     float icChEB[EBDetId::kSizeForDenseIndexing];
-    float icChEflow[EBDetId::kSizeForDenseIndexing];
-    float icHrEflow[EBDetId::kSizeForDenseIndexing];
-    float ic5x5Eflow[EBDetId::kSizeForDenseIndexing];
+    float icChEBEflow[EBDetId::kSizeForDenseIndexing];
+    float icHrEBEflow[EBDetId::kSizeForDenseIndexing];
+    float ic5x5EBEflow[EBDetId::kSizeForDenseIndexing];
     float icChEvenEB[EBDetId::kSizeForDenseIndexing];
     float icChOddEB[EBDetId::kSizeForDenseIndexing];
     float icChEE[EEDetId::kSizeForDenseIndexing];
+    float icChEEEflow[EEDetId::kSizeForDenseIndexing];
     float icChEvenEE[EEDetId::kSizeForDenseIndexing];
     float icChOddEE[EEDetId::kSizeForDenseIndexing];
     
@@ -566,8 +565,8 @@ void ComputeICs()
              }
         }
     }
-   //ComputeKfactors();
-//---- Compute K-Factors (ch, harness, 5x5) ------------------
+   ComputeKfactors(); // k-factor per channel for EE
+//---- Compute K-Factors (ch, harness, 5x5) for EB ------------------
    cout << ">>>>> ComputeKfactors(channels)" << endl;
    for(uint32_t index=0; index<EBDetId::kSizeForDenseIndexing; ++index)
    {
@@ -577,7 +576,7 @@ void ComputeICs()
        
          
    }
-  //ComputeKfactors();
+
   for (auto& hr : hrMap_)
   {
        ComputeKfactors(hr.second); 
@@ -636,11 +635,11 @@ void ComputeICs()
                                 ebRingsSumEtEven_[currentRing]-1)/GetChannelKfactor(index, 0).first+1);
         icChOddEB[index] = 1/((ebXstalsOdd_[index].GetSumEt(0)/
                                ebRingsSumEtOdd_[currentRing]-1)/GetChannelKfactor(index, 0).first+1);
-        icChEflow[index] = 1/((ebXstals_[index].GetSumEt(0)/
+        icChEBEflow[index] = 1/((ebXstals_[index].GetSumEt(0)/
                            BarrelSumEtWeight_-1)/GetChannelKfactor(index, 0).first+1);
-        icHrEflow[index] = 1/((sumEtHr[id_hr]/
+        icHrEBEflow[index] = 1/((sumEtHr[id_hr]/
                            BarrelSumEtWeight_-1)/GetHrKfactor(id_hr).first+1);   
-        ic5x5Eflow[index] = 1/((sumEt5x5[id_5x5]/
+        ic5x5EBEflow[index] = 1/((sumEt5x5[id_5x5]/
                            BarrelSumEtWeight_-1)/Get5x5Kfactor(id_5x5).first+1); 
        
                            
@@ -720,9 +719,9 @@ void ComputeICs()
             outFile_->eb_xstals.ic_ch = icChEB[index]/icChMeanEB_[currentRing];
             outFile_->eb_xstals.ic_old = ebOldICs_[currentRing][ebXstal.iphi()];
             outFile_->eb_xstals.ic_abs = ebAbsICs_[currentRing][ebXstal.iphi()]/icAbsChMeanEB_[currentRing];
-            outFile_->eb_xstals.ic_eflow = icChEflow[index]/icChMeanEflow_; //eflow
-            outFile_->eb_xstals.ic_hr_eflow = ic5x5Eflow[index]/icChMeanEflow_; //eflow
-            outFile_->eb_xstals.ic_5x5_eflow = icHrEflow[index]/icChMeanEflow_; //eflow
+            outFile_->eb_xstals.ic_eflow = icChEBEflow[index];///icChMeanEflow_; //eflow
+            outFile_->eb_xstals.ic_hr_eflow = ic5x5EBEflow[index]/icChMeanEflow_; //eflow
+            outFile_->eb_xstals.ic_5x5_eflow = icHrEBEflow[index]/icChMeanEflow_; //eflow
 
    
             outFile_->eb_xstals.ic_ch_err = ebICChErr_[index]/(ebRingsSumEt_[currentRing][0]*outFile_->eb_xstals.k_ch);
@@ -753,6 +752,8 @@ void ComputeICs()
                                 eeRingsSumEtEven_[currentRing]-1)/GetChannelKfactor(index, 0).first+1);
         icChOddEE[index] = 1/((eeXstalsOdd_[index].GetSumEt(0)/
                                eeRingsSumEtOdd_[currentRing]-1)/GetChannelKfactor(index, 0).first+1);
+        icChEEEflow[index] = 1/((eeXstals_[index].GetSumEt(0)/
+                           BarrelSumEtWeight_-1)/GetChannelKfactor(index, 1).first+1);
         if(currentRing != -1 && goodXstalsEE_[currentRing][eeXstal.ix()][eeXstal.iy()][0])
         {
             icChMeanEE_[currentRing] += icChEE[index];
@@ -809,14 +810,17 @@ void ComputeICs()
             outFile_->ee_xstals.k_ch_err = GetChannelKfactor(index, 1).second;
             outFile_->ee_xstals.ring_average = eeRingsSumEt_[currentRing][0];
             outFile_->ee_xstals.ring_average_uncleaned = eeRingsSumEtUncut_[currentRing];
+            outFile_->ee_xstals.eflow_wnorm = BarrelSumEtWeight_;
             outFile_->ee_xstals.ic_ch = icChEE[index]/icChMeanEE_[currentRing];
             outFile_->ee_xstals.ic_old = eeOldICs_[eeXstal.ix()][eeXstal.iy()][eeXstal.zside()<0 ? 0 : 1];
             outFile_->ee_xstals.ic_abs = eeAbsICs_[eeXstal.ix()][eeXstal.iy()][eeXstal.zside()<0 ? 0 : 1]
-                /icAbsChMeanEE_[currentRing];            
+                /icAbsChMeanEE_[currentRing];     
+            outFile_->ee_xstals.ic_eflow = icChEEEflow[index]; //eflow       
             outFile_->ee_xstals.ic_ch_err = eeICChErr_[index]/(eeRingsSumEt_[currentRing][0]*outFile_->ee_xstals.k_ch);
             outFile_->ee_xstals.ic_ch_err = outFile_->ee_xstals.ic_ch_err/pow(outFile_->ee_xstals.ic_ch, 2);
             outFile_->ee_xstals.ic_err_sys = eeOldICsErr_[eeXstal.ix()][eeXstal.iy()][eeXstal.zside()<0 ? 0 : 1];
             outFile_->ee_xstals.Fill();
+
             //---even lumis tree
             outFile_->ee_xstals_even.ic_ch = icChEvenEE[index]/icChEvenMeanEE_[currentRing];
             outFile_->ee_xstals_even.Fill();
@@ -1158,9 +1162,13 @@ int main( int argc, char *argv[] )
 
         outFile_ = unique_ptr<CalibrationFile>(new CalibrationFile(out));   
         outFile_->eb_xstals.firstRun   = IOVBegins[iIOV].run; 
+        outFile_->ee_xstals.firstRun   = IOVBegins[iIOV].run; 
         outFile_->eb_xstals.firstLumi   = IOVBegins[iIOV].lumi; 
+        outFile_->ee_xstals.firstLumi   = IOVBegins[iIOV].lumi; 
         outFile_->eb_xstals.lastRun   = IOVEnds[iIOV].run; 
+        outFile_->ee_xstals.lastRun   = IOVEnds[iIOV].run;
         outFile_->eb_xstals.lastLumi  = IOVEnds[iIOV].lumi; 
+        outFile_->ee_xstals.lastLumi  = IOVEnds[iIOV].lumi; 
         outFile_->eb_xstals.avg_time   = IOVTimes[iIOV];
         outFile_->ee_xstals.avg_time   = IOVTimes[iIOV];
         outFile_->eb_xstals.iov_flag   = IOVFlags[iIOV];

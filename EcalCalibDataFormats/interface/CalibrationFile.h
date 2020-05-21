@@ -311,12 +311,17 @@ public:
     //---branches variables---
     double        avg_time;
     char          iov_flag;
+    int           firstRun; 
+    int           lastRun;     
+    int           firstLumi; 
+    int           lastLumi;
     int           begin[2];
     int           end[2];
     int           block;
     int           n_lumis;
     Long64_t      n_events;
     double        eflow_norm;
+    double        eflow_wnorm;
     float         mean_bs_x;
     float         mean_bs_sigmax;
     float         mean_bs_y;
@@ -338,6 +343,7 @@ public:
     float         ic_ch;
     float         ic_old;
     float         ic_abs;
+    float         ic_eflow;
     double        ic_ring_err;
     double        ic_ch_err;
     double        ic_err_sys;
@@ -353,11 +359,16 @@ CrystalsEETree::CrystalsEETree()
     tree_ = new TTree();    
     //---init
     avg_time=0;
+    firstRun=0; 
+    lastRun=0;     
+    firstLumi=0; 
+    lastLumi=0;
     iov_flag='V';
     block=0;
     n_lumis=0;
     n_events=0;
     eflow_norm=0;
+    eflow_wnorm=0;
     mean_bs_x=0;
     mean_bs_sigmax=0;
     mean_bs_y=0;
@@ -379,12 +390,17 @@ CrystalsEETree::CrystalsEETree()
     ic_ch=0;
     ic_old=0;
     ic_abs=0;
+    ic_eflow=0;
     ic_ring_err=0;
     ic_ch_err=0;
     ic_err_sys=0;
     
     //---create branches
     tree_->Branch("avg_time", &avg_time, "avg_time/D");
+    tree_->Branch("firstRun", &firstRun, "firstRun/I");
+    tree_->Branch("lastRun", &lastRun , "lastRun/I");  
+    tree_->Branch("firstLumi", &firstLumi , "firstLumi/I");
+    tree_->Branch("lastLumi", &lastLumi , "lastLumi/I");
     tree_->Branch("iov_flag", &iov_flag, "iov_flag/C");
     tree_->Branch("begin", &begin, "begin[2]/I");
     tree_->Branch("end", &end, "end[2]/I");
@@ -392,6 +408,7 @@ CrystalsEETree::CrystalsEETree()
     tree_->Branch("n_lumis", &n_lumis, "n_lumis/I");
     tree_->Branch("n_events", &n_events, "n_events/L");
     tree_->Branch("eflow_norm", &eflow_norm, "eflow_norm/D");
+    tree_->Branch("eflow_wnorm", &eflow_wnorm, "eflow_wnorm/D");
     tree_->Branch("mean_bs_x", &mean_bs_x, "mean_bs_x/F");
     tree_->Branch("mean_bs_sigmax", &mean_bs_sigmax, "mean_bs_sigmax/F");
     tree_->Branch("mean_bs_y", &mean_bs_y, "mean_bs_y/F");
@@ -413,6 +430,7 @@ CrystalsEETree::CrystalsEETree()
     tree_->Branch("ic_ch", &ic_ch, "ic_ch/F");
     tree_->Branch("ic_old", &ic_old, "ic_old/F");
     tree_->Branch("ic_abs", &ic_abs, "ic_abs/F");
+    tree_->Branch("ic_eflow", &ic_eflow, "ic_eflow/F");
     tree_->Branch("ic_ring_err", &ic_ring_err, "ic_ring_err/D");
     tree_->Branch("ic_ch_err", &ic_ch_err, "ic_ch_err/D");
     tree_->Branch("ic_err_sys", &ic_err_sys, "ic_err_sys/D");
@@ -427,11 +445,16 @@ CrystalsEETree::CrystalsEETree(TTree* tree)
     currentEntry_ = -1;
     //---init
     avg_time=0;
+    firstRun=0; 
+    lastRun=0;     
+    firstLumi=0; 
+    lastLumi=0;
     iov_flag='V';
     block=0;
     n_lumis=0;
     n_events=0;
     eflow_norm=0;
+    eflow_wnorm=0;
     mean_bs_x=0;
     mean_bs_sigmax=0;
     mean_bs_y=0;
@@ -453,12 +476,17 @@ CrystalsEETree::CrystalsEETree(TTree* tree)
     ic_ch=0;
     ic_old=0;
     ic_abs=0;
+    ic_eflow=0;
     ic_ring_err=0;
     ic_ch_err=0;
     ic_err_sys=0;
     
     //---create branches
     tree_->SetBranchAddress("avg_time", &avg_time);
+    tree_->SetBranchAddress("firstRun", &firstRun);
+    tree_->SetBranchAddress("lastRun", &lastRun);  
+    tree_->SetBranchAddress("firstLumi", &firstLumi);
+    tree_->SetBranchAddress("lastLumi", &lastLumi);
     tree_->SetBranchAddress("iov_flag", &iov_flag);
     tree_->SetBranchAddress("begin", &begin[0]);
     tree_->SetBranchAddress("end", &end[0]);
@@ -466,6 +494,7 @@ CrystalsEETree::CrystalsEETree(TTree* tree)
     tree_->SetBranchAddress("n_lumis", &n_lumis);
     tree_->SetBranchAddress("n_events", &n_events);
     tree_->SetBranchAddress("eflow_norm", &eflow_norm);    
+    tree_->SetBranchAddress("eflow_wnorm", &eflow_wnorm);  
     tree_->SetBranchAddress("mean_bs_x", &mean_bs_x);
     tree_->SetBranchAddress("mean_bs_sigmax", &mean_bs_sigmax);
     tree_->SetBranchAddress("mean_bs_y", &mean_bs_y);
@@ -487,6 +516,7 @@ CrystalsEETree::CrystalsEETree(TTree* tree)
     tree_->SetBranchAddress("ic_ch", &ic_ch);
     tree_->SetBranchAddress("ic_old", &ic_old);
     tree_->SetBranchAddress("ic_abs", &ic_abs);
+    tree_->SetBranchAddress("ic_eflow", &ic_eflow);
     tree_->SetBranchAddress("ic_ring_err", &ic_ring_err);
     tree_->SetBranchAddress("ic_ch_err", &ic_ch_err);
     tree_->SetBranchAddress("ic_err_sys", &ic_err_sys);
