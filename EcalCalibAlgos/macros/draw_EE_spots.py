@@ -135,11 +135,12 @@ def drawPlot( tree, outputdir, option,thr,consecutive, DEBUG=False):
         skip = True
         if DEBUG: print "So I can Skip this event ..."
     if skip : 
-      if DEBUG: print "Skipped"
+      if DEBUG: 
+        print "Skipped"
       continue
   
      
-      
+     
 
     h = TGraph(n1,tree.GetVal(1),tree.GetVal(0))
     if DEBUG:
@@ -221,7 +222,7 @@ if (args.debug):
   print "Entering Debugging Mode ... "
 
 
-outputdir=args.outdir #"/eos/user/f/fcetorel/www/PhiSym/eflow/history_2018_Promptbaseline/"
+outputdir=args.outdir #"/eos/user/f/fcetorel/www/PhiSym/eflow/checkHotSpot_EE_2018_Promptbaseline_4dIOV/"
 filename = args.inputfile
 if not os.path.exists(filename): 
   print '>>> This File does not exist -->  '+filename+'... check path ... '
