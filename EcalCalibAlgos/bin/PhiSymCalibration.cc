@@ -62,7 +62,7 @@ double eeOldICsErr_[EEDetId::IX_MAX+1][EEDetId::IY_MAX+1][2];
 float ebAbsICs_[kNRingsEB][361];
 float eeAbsICs_[EEDetId::IX_MAX+1][EEDetId::IY_MAX+1][2];
 //---ring based
-double BarrelSumEtWeight_;
+double BarrelSumEtWeight_=0;
 //---EB
 double ebRingsSumEt_[kNRingsEB][11];
 double ebRingsSumEtUncut_[kNRingsEB];
@@ -527,21 +527,20 @@ void ComputeICs()
 
 
     //--- compute EB weighted average for eflow (weighetd sum of the average sum of the ring )
-    TFile *f = new TFile("/afs/cern.ch/work/f/fcetorel/private/work2/Eflow_2/CMSSW_10_6_1/src/PhiSym/EcalCalibAlgos/weight.root"); //file with the weight, generated from reweight.cpp
+    TFile *f = new TFile("/afs/cern.ch/work/f/fcetorel/private/work2/Eflow_2/CMSSW_10_6_1/src/PhiSym/EcalCalibAlgos/weight2017.root"); //file with the weight, generated from reweight.cpp
     TH1F * weight_histo = (TH1F*)f->Get("weight_histo");
 
     for(int iRing=0; iRing<kNRingsEB; ++iRing)
     {
 	float w; 
-
         iRing<85 ? w = weight_histo -> GetBinContent(iRing + 1) : w = weight_histo -> GetBinContent(iRing + 2);
 
         BarrelSumEtWeight_ += w*ebRingsSumEt_[iRing][0];
-
+        
         
     }
     BarrelSumEtWeight_ = BarrelSumEtWeight_ / (weight_histo -> Integral());
-
+    
     f -> Close();
 
     //---compute EE rings averages

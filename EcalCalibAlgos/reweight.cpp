@@ -41,12 +41,19 @@ int main(int argc, char *argv[])
 	vector<float> w_etaring;
 	TChain* DoubleEG;
 	TChain* ZeroBias;
-	TString fold_EP = "/eos/cms/store/group/dpg_ecal/alca_ecalcalib/ecalelf/ntuples/13TeV/ALCARERECO/PromptReco2017_pedv1_ps_ICv1_laserv3_LC_Alpha4";
-	TString fold_PS = "/afs/cern.ch/work/a/abeschi/public/4Flavia/PhiSYmNtu2017";
-TString ntuple_EP[] = {"/DoubleEG-Run2017B-ZSkim-Prompt-v1/297046-297723/pedNoise/DoubleEG-Run2017B-ZSkim-Prompt-v1-297046-297723.root","/DoubleEG-Run2017B-ZSkim-Prompt-v2/298678-299329/pedNoise/DoubleEG-Run2017B-ZSkim-Prompt-v2-298678-299329.root"};
-		TString ntuple_PS[] ={"/ntuples_2017B_HarnessCorrection/summed*.root"};
+//for 2017
+//	TString fold_EP = "/eos/cms/store/group/dpg_ecal/alca_ecalcalib/ecalelf/ntuples/13TeV/ALCARERECO/PromptReco2017_pedv1_ps_ICv1_laserv3_LC_Alpha4";
+//	TString fold_PS = "/afs/cern.ch/work/a/abeschi/public/4Flavia/PhiSYmNtu2017";
+//TString ntuple_EP[] = {"/DoubleEG-Run2017B-ZSkim-Prompt-v1/297046-297723/pedNoise/DoubleEG-Run2017B-ZSkim-Prompt-v1-297046-297723.root","/DoubleEG-Run2017B-ZSkim-Prompt-v2/298678-299329/pedNoise/DoubleEG-Run2017B-ZSkim-Prompt-v2-298678-299329.root"};
+//		TString ntuple_PS[] ={"/ntuples_2017B_HarnessCorrection/summed*.root"};
+//for 2018
+      TString fold_EP = "/eos/cms/store/group/dpg_ecal/alca_ecalcalib/ecalelf/ntuples/13TeV/ALCARERECO/102X_dataRun2_Sep2018Rereco_Run2018D_SingleIOVrun320500_normalized_v1/";
+      TString fold_PS = "/afs/cern.ch/work/f/fcetorel/private/work2/Eflow_2/CMSSW_10_6_1/src/PhiSym/EcalCalibAlgos/Rereco2018/";
+  TString ntuple_EP[] = {"EGamma-Run2018B-ZSkim-17Sep2018-v1/316998-319312/noJSON/pedNoise/EGamma-Run2018B-ZSkim-17Sep2018-v1-316998-319312.root"}; 
+     TString ntuple_PS[] ={"/2018B_2d/summed*.root"};
+
 	DoubleEG = new TChain("selected");
-	for (int i=0; i<2; i++)
+	for (int i=0; i<1; i++)
 	{
 		DoubleEG -> Add(fold_EP + ntuple_EP[i]);
 		
@@ -152,7 +159,7 @@ TString ntuple_EP[] = {"/DoubleEG-Run2017B-ZSkim-Prompt-v1/297046-297723/pedNois
 
 
 
-	TFile *MyFile = new TFile("weight.root","RECREATE");
+	TFile *MyFile = new TFile("weight_Rereco2018.root","RECREATE");
 	weight_histo -> Write("weight_histo");
 	MyFile -> Write();
 	
@@ -162,7 +169,7 @@ TString ntuple_EP[] = {"/DoubleEG-Run2017B-ZSkim-Prompt-v1/297046-297723/pedNois
 cout << "# eventi prima delle correzione  " << etaEle_histo[1] -> Integral() ; 
 cout << "# eventi dopo delle correzione  " << etaEle_corr_histo -> Integral() << endl; 
 
-system("mv *.png /eos/user/f/fcetorel/www/PhiSym");
+system("mv *.png /eos/user/f/fcetorel/www/PhiSym/Rereco2018");
 
 
 
